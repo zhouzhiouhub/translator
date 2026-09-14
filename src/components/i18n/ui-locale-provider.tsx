@@ -38,6 +38,35 @@ function DocumentLangSync({
   return <>{children}</>;
 }
 
+function usePersistReady() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const api = (
+      useUiLocaleStore as typeof useUiLocaleStore & {
+        persist?: {
+          hasHydrated: () => boolean;
+          onFinishHydration: (cb: () => void) => () => void;
+        };
+      }
+    ).persist;
+
+    if (!api) {
+      setReady(true);
+      return;
+    }
+
+    if (api.hasHydrated()) {
+      setReady(true);
+      return;
+    }
+
+    return api.onFinishHydration(() => setReady(true));
+  }, []);
+
+  return ready;
+}
+
 /**
  * Dynamic packs override messages client-side.
  * Provider remounts via `key` so consumers always pick up new catalogs.
@@ -50,19 +79,7 @@ export function UiLocaleProvider({ children }: { children: ReactNode }) {
   const setPreferredUiLocale = useUiLocaleStore((s) => s.setPreferredUiLocale);
   const dynamicMessages = useUiLocaleStore((s) => s.dynamicMessages);
   const hydrateDynamicPack = useUiLocaleStore((s) => s.hydrateDynamicPack);
-  const [persistReady, setPersistReady] = useState(() =>
-    useUiLocaleStore.persist.hasHydrated(),
-  );
-
-  useEffect(() => {
-    const unsub = useUiLocaleStore.persist.onFinishHydration(() => {
-      setPersistReady(true);
-    });
-    if (useUiLocaleStore.persist.hasHydrated()) {
-      setPersistReady(true);
-    }
-    return unsub;
-  }, []);
+  const persistReady = usePersistReady();
 
   useEffect(() => {
     if (!persistReady) return;

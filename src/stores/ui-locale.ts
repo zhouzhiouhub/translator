@@ -7,15 +7,15 @@ import {
   SOURCE_MESSAGES,
   REFERENCE_MESSAGES,
 } from "@/agents/locale-pack";
-import {
-  hasLocalePack,
-  loadLocalePack,
-} from "@/lib/locale-pack/cache";
+import { loadLocalePack } from "@/lib/locale-pack/cache";
+import { translationCoverage } from "@/lib/locale-pack/validate";
 import {
   isFixedUiLocale,
   isUiLocale,
   type UiLocale,
 } from "@/i18n/ui-locales";
+
+const MIN_COVERAGE_RATIO = 0.35;
 
 export type UiLocaleStatus =
   | "idle"
@@ -66,19 +66,27 @@ export const useUiLocaleStore = create<UiLocaleState>()(
         }
         const hash = getSourceVersionHash();
         const cached = await loadLocalePack(preferredUiLocale, hash);
-        if (cached) {
-          set({
-            dynamicMessages: cached.messages,
-            status: "ready",
-            errorMessage: null,
-          });
+        if (!cached) return;
+
+        const coverage = translationCoverage(SOURCE_MESSAGES, cached.messages);
+        if (coverage.ratio < MIN_COVERAGE_RATIO) {
+          set({ dynamicMessages: null, status: "idle" });
+          return;
         }
+
+        set({
+          dynamicMessages: cached.messages,
+          status: "ready",
+          errorMessage: null,
+        });
       },
 
       packStatusFor: async (locale) => {
         if (isFixedUiLocale(locale)) return "builtin";
-        const ok = await hasLocalePack(locale, getSourceVersionHash());
-        return ok ? "cached" : "needGenerate";
+        const cached = await loadLocalePack(locale, getSourceVersionHash());
+        if (!cached) return "needGenerate";
+        const coverage = translationCoverage(SOURCE_MESSAGES, cached.messages);
+        return coverage.ratio >= MIN_COVERAGE_RATIO ? "cached" : "needGenerate";
       },
 
       applyLocale: async (locale, options) => {

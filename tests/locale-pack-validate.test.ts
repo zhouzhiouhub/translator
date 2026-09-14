@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   parseLocaleJson,
+  translationCoverage,
   validateAndRepairLocalePack,
 } from "../src/lib/locale-pack/validate";
 
@@ -13,7 +14,6 @@ describe("locale pack validate", () => {
     };
     const generated = {
       common: { save: "Save", count: "X / Y" },
-      // brand missing
       extra: { nope: "1" },
     };
 
@@ -34,5 +34,29 @@ describe("locale pack validate", () => {
   it("parses fenced JSON", () => {
     const obj = parseLocaleJson('```json\n{"a":{"b":"c"}}\n```');
     assert.deepEqual(obj, { a: { b: "c" } });
+  });
+
+  it("unwraps envelope with sourceMessages", () => {
+    const obj = parseLocaleJson(
+      JSON.stringify({
+        sourceLocale: "zh-CN",
+        targetLocale: "ru",
+        sourceMessages: { nav: { settings: "Настройки" } },
+      }),
+    );
+    assert.deepEqual(obj, { nav: { settings: "Настройки" } });
+  });
+
+  it("measures translation coverage", () => {
+    const source = { a: { x: "你好", y: "世界" } };
+    const same = translationCoverage(source, { a: { x: "你好", y: "世界" } });
+    assert.equal(same.changed, 0);
+    assert.equal(same.ratio, 0);
+
+    const translated = translationCoverage(source, {
+      a: { x: "Hello", y: "World" },
+    });
+    assert.equal(translated.changed, 2);
+    assert.equal(translated.ratio, 1);
   });
 });

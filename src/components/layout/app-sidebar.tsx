@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   Languages,
   Bot,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { locales, type AppLocale } from "@/i18n/config";
+import { useRouteLocale } from "@/i18n/use-route-locale";
 import {
   UI_LOCALE_LABELS,
   isFixedUiLocale,
@@ -29,7 +30,7 @@ const navItems = [
 
 export function AppSidebar() {
   const t = useTranslations("nav");
-  const locale = useLocale();
+  const routeLocale = useRouteLocale();
   const pathname = usePathname();
   const router = useRouter();
   const preferredUiLocale = useUiLocaleStore((s) => s.preferredUiLocale);
@@ -37,13 +38,11 @@ export function AppSidebar() {
 
   const activeUiLocale: UiLocale = !isFixedUiLocale(preferredUiLocale)
     ? preferredUiLocale
-    : isFixedUiLocale(locale)
-      ? locale
-      : preferredUiLocale;
+    : routeLocale;
 
   async function onFixedLocaleClick(code: AppLocale) {
     await applyLocale(code);
-    router.push(swapLocalePath(pathname, locale, code));
+    router.push(swapLocalePath(pathname, routeLocale, code));
   }
 
   return (
@@ -72,13 +71,14 @@ export function AppSidebar() {
 
       <nav className="flex flex-1 flex-col gap-1 p-3">
         {navItems.map((item) => {
-          const href = `/${locale}${item.href}`;
+          const href = `/${routeLocale}${item.href}`;
           const active =
             item.href === ""
-              ? pathname === `/${locale}` || pathname === `/${locale}/`
+              ? pathname === `/${routeLocale}` ||
+                pathname === `/${routeLocale}/`
               : item.href === "/settings"
-                ? pathname === `/${locale}/settings` ||
-                  pathname === `/${locale}/settings/`
+                ? pathname === `/${routeLocale}/settings` ||
+                  pathname === `/${routeLocale}/settings/`
                 : pathname.startsWith(href);
           const disabled = item.phase > 1;
           const Icon = item.icon;
@@ -134,14 +134,14 @@ export function AppSidebar() {
         </div>
         {!isFixedUiLocale(activeUiLocale) ? (
           <Link
-            href={`/${locale}/settings`}
+            href={`/${routeLocale}/settings`}
             className="mt-2 block rounded-lg bg-primary/10 px-2 py-1.5 text-center text-xs font-medium text-primary hover:bg-primary/15"
           >
             {UI_LOCALE_LABELS[activeUiLocale]}
           </Link>
         ) : (
           <Link
-            href={`/${locale}/settings`}
+            href={`/${routeLocale}/settings`}
             className="mt-2 block text-center text-[11px] text-muted hover:text-foreground"
           >
             {t("settings")}

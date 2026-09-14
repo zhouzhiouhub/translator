@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 import { Bot, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useAppStore } from "@/stores/app";
 import { useUiLocaleStore } from "@/stores/ui-locale";
+import { useRouteLocale } from "@/i18n/use-route-locale";
 import {
   ALL_UI_LOCALES,
   UI_LOCALE_LABELS,
@@ -25,7 +26,7 @@ function swapLocalePath(pathname: string, current: string, next: string) {
 export function SettingsPanel() {
   const t = useTranslations("settings");
   const tGate = useTranslations("aiGate");
-  const locale = useLocale();
+  const routeLocale = useRouteLocale();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -61,7 +62,7 @@ export function SettingsPanel() {
     window.setTimeout(() => setToast(null), 2800);
   }
 
-  async function onApply() {
+  async function onApply(force = false) {
     if (!isFixedUiLocale(selected) && !aiConfigured) {
       showToast(t("aiRequired"));
       return;
@@ -70,21 +71,27 @@ export function SettingsPanel() {
     try {
       const result = await applyLocale(selected, {
         aiConfig,
+        force,
       });
 
       if (result.kind === "fixed") {
-        router.push(swapLocalePath(pathname, locale, result.locale));
+        router.push(swapLocalePath(pathname, routeLocale, result.locale));
         showToast(t("applySuccess"));
         return;
       }
 
-      showToast(
-        packKind === "cached" ? t("applySuccess") : t("generateSuccess"),
-      );
+      showToast(force || packKind === "needGenerate" ? t("generateSuccess") : t("applySuccess"));
       void packStatusFor(selected).then(setPackKind);
     } catch (err) {
       if (err instanceof Error && err.message === "AI_NOT_CONFIGURED") {
         showToast(t("aiRequired"));
+        return;
+      }
+      if (
+        err instanceof Error &&
+        err.message.startsWith("LOCALE_PACK_LOW_COVERAGE")
+      ) {
+        showToast(t("generateLowCoverage"));
         return;
       }
       showToast(t("generateFailed"));
@@ -150,7 +157,9 @@ export function SettingsPanel() {
           >
             {statusLabel}
           </span>
-          {preferredUiLocale === selected && status !== "generating" ? (
+          {preferredUiLocale === selected &&
+          status !== "generating" &&
+          (isFixedUiLocale(selected) || packKind === "cached") ? (
             <span className="rounded-lg bg-primary/10 px-2 py-1 text-primary">
               {t("statusActive")}
             </span>
@@ -161,7 +170,7 @@ export function SettingsPanel() {
           <p className="mt-3 text-sm text-amber-700">
             {t("aiRequired")}{" "}
             <Link
-              href={`/${locale}/settings/ai`}
+              href={`/${routeLocale}/settings/ai`}
               className="font-medium text-primary underline-offset-2 hover:underline"
             >
               {t("goConfigureAi")}
@@ -169,11 +178,11 @@ export function SettingsPanel() {
           </p>
         ) : null}
 
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button
             type="button"
             disabled={busy || needsAi}
-            onClick={() => void onApply()}
+            onClick={() => void onApply(false)}
           >
             {busy
               ? t("statusGenerating")
@@ -181,11 +190,21 @@ export function SettingsPanel() {
                 ? t("generateAndApply")
                 : t("apply")}
           </Button>
+          {!isFixedUiLocale(selected) && packKind === "cached" ? (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy || needsAi}
+              onClick={() => void onApply(true)}
+            >
+              {t("regenerate")}
+            </Button>
+          ) : null}
         </div>
       </section>
 
       <Link
-        href={`/${locale}/settings/ai`}
+        href={`/${routeLocale}/settings/ai`}
         className="flex items-start gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:bg-slate-50"
       >
         <div className="rounded-xl bg-primary/10 p-2 text-primary">

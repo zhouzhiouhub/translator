@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { checkAiConfig, runTranslation } from "@/agents/translator";
@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
 import { useUiLocaleStore } from "@/stores/ui-locale";
+import { useRouteLocale } from "@/i18n/use-route-locale";
 import { mapTargetLangToUiLocale } from "@/i18n/ui-locales";
 import type { TranslationStyle } from "@/types/translation";
 
@@ -44,7 +45,7 @@ export function TranslatorPanel() {
   const t = useTranslations("translator");
   const tGate = useTranslations("aiGate");
   const tCommon = useTranslations("common");
-  const locale = useLocale();
+  const routeLocale = useRouteLocale();
   const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
@@ -100,7 +101,7 @@ export function TranslatorPanel() {
               if (result.kind === "fixed") {
                 const rest =
                   window.location.pathname.replace(
-                    new RegExp(`^/${locale}`),
+                    new RegExp(`^/${routeLocale}`),
                     "",
                   ) || "";
                 router.push(`/${result.locale}${rest}`);
@@ -335,7 +336,7 @@ export function TranslatorPanel() {
             <Button
               onClick={() => {
                 setGateOpen(false);
-                router.push(`/${locale}/settings/ai`);
+                router.push(`/${routeLocale}/settings/ai`);
               }}
             >
               {tGate("goConfigure")}

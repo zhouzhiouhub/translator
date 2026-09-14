@@ -12,6 +12,7 @@ import {
 } from "@/lib/locale-pack/cache";
 import {
   parseLocaleJson,
+  translationCoverage,
   validateAndRepairLocalePack,
 } from "@/lib/locale-pack/validate";
 import { isFixedUiLocale, type UiLocale } from "@/i18n/ui-locales";
@@ -19,36 +20,56 @@ import { isFixedUiLocale, type UiLocale } from "@/i18n/ui-locales";
 export const SOURCE_MESSAGES = zhCN as Record<string, unknown>;
 export const REFERENCE_MESSAGES = enUS as Record<string, unknown>;
 
+/** Minimum share of leaf strings that must differ from zh-CN. */
+const MIN_COVERAGE_RATIO = 0.35;
+
+const LOCALE_LANGUAGE_NAMES: Record<string, string> = {
+  ja: "Japanese",
+  ko: "Korean",
+  ru: "Russian",
+  de: "German",
+  fr: "French",
+  es: "Spanish",
+  pt: "Portuguese",
+};
+
 export function getSourceVersionHash(): string {
   return computeSourceVersionHash(SOURCE_MESSAGES);
 }
 
 const LOCALE_SYSTEM_PROMPT = `You are Kinolin Locale Pack Agent.
-Translate a next-intl JSON message catalog into the target locale.
+Translate a next-intl JSON message namespace into the target language.
 Rules:
-1. Return ONLY a single JSON object — no markdown, no commentary.
-2. Keep the exact same key structure and key names as the source.
-3. Translate string values only.
-4. Preserve placeholders exactly: {{name}}, {count}, {max}, {provider}, {model}, {key}, {style}, {duration}, <0></0>, %s, %d, ICU segments.
-5. Keep brand name "Kinolin" unchanged unless it appears inside a longer sentence where localization is natural; never invent new keys.
+1. Return ONLY a JSON object — no markdown fences, no commentary.
+2. Keep the exact same key structure and key names.
+3. Translate every string value into the target language (do not leave Chinese).
+4. Preserve placeholders exactly: {count}, {max}, {provider}, {model}, {key}, {style}, {duration}, {{name}}, <0></0>, %s, %d.
+5. Keep the brand token "Kinolin" unchanged.
 6. Output must be valid JSON.`;
 
-function buildLocaleUserPrompt(params: LocaleParams): string {
-  const payload = {
-    sourceLocale: params.sourceLocale,
-    targetLocale: params.targetLocale,
-    sourceMessages: params.sourceMessages,
-    referenceMessages: params.referenceMessages,
-    glossary: params.glossary ?? { Kinolin: "Kinolin" },
-  };
-  return `Translate sourceMessages into locale "${params.targetLocale}".
-Use referenceMessages only as style/terminology hints when helpful.
-Return the full translated JSON object with identical keys.
-
-${JSON.stringify(payload)}`;
+function languageName(locale: string): string {
+  return LOCALE_LANGUAGE_NAMES[locale] ?? locale;
 }
 
-async function generateViaTranslate(
+async function translateJsonChunk(
+  aiConfig: AIConfig,
+  targetLocale: string,
+  chunk: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const provider = createAIProvider(aiConfig);
+  const lang = languageName(targetLocale);
+  const result = await provider.translate({
+    text: `Translate all string values in this JSON into ${lang} (${targetLocale}).\nReturn ONLY the translated JSON object with identical keys.\n\n${JSON.stringify(chunk)}`,
+    targetLanguage: targetLocale,
+    systemPrompt: LOCALE_SYSTEM_PROMPT,
+  });
+  return parseLocaleJson(result.text);
+}
+
+/**
+ * Generate pack namespace-by-namespace so models don't echo the huge payload.
+ */
+async function generateViaChunks(
   aiConfig: AIConfig,
   params: LocaleParams,
 ): Promise<Record<string, unknown>> {
@@ -58,12 +79,24 @@ async function generateViaTranslate(
     return result.messages;
   }
 
-  const result = await provider.translate({
-    text: buildLocaleUserPrompt(params),
-    targetLanguage: params.targetLocale,
-    systemPrompt: LOCALE_SYSTEM_PROMPT,
-  });
-  return parseLocaleJson(result.text);
+  const merged: Record<string, unknown> = {};
+  for (const [ns, value] of Object.entries(params.sourceMessages)) {
+    const chunk = { [ns]: value };
+    const translated = await translateJsonChunk(
+      aiConfig,
+      params.targetLocale,
+      chunk,
+    );
+    if (translated[ns] !== undefined) {
+      merged[ns] = translated[ns];
+    } else if (Object.keys(translated).length > 0) {
+      // Model returned the namespace contents without the wrapper key.
+      merged[ns] = translated;
+    } else {
+      merged[ns] = value;
+    }
+  }
+  return merged;
 }
 
 export interface RunLocalePackInput {
@@ -98,12 +131,16 @@ export async function runLocalePackGeneration(
   if (!force) {
     const cached = await loadLocalePack(targetLocale, sourceVersionHash);
     if (cached) {
-      return {
-        locale: targetLocale,
-        messages: cached.messages,
-        warnings: [],
-        failedKeys: [],
-      };
+      const coverage = translationCoverage(SOURCE_MESSAGES, cached.messages);
+      if (coverage.ratio >= MIN_COVERAGE_RATIO) {
+        return {
+          locale: targetLocale,
+          messages: cached.messages,
+          warnings: [],
+          failedKeys: [],
+        };
+      }
+      // Stale/bad cache (e.g. Chinese echo) — regenerate.
     }
   }
 
@@ -116,8 +153,15 @@ export async function runLocalePackGeneration(
     promptVersion: LOCALE_PACK_PROMPT_VERSION,
   };
 
-  const raw = await generateViaTranslate(aiConfig, params);
+  const raw = await generateViaChunks(aiConfig, params);
   const repaired = validateAndRepairLocalePack(SOURCE_MESSAGES, raw);
+  const coverage = translationCoverage(SOURCE_MESSAGES, repaired.messages);
+
+  if (coverage.ratio < MIN_COVERAGE_RATIO) {
+    throw new Error(
+      `LOCALE_PACK_LOW_COVERAGE:${Math.round(coverage.ratio * 100)}`,
+    );
+  }
 
   await saveLocalePack({
     locale: targetLocale,
@@ -130,7 +174,10 @@ export async function runLocalePackGeneration(
   return {
     locale: targetLocale,
     messages: repaired.messages,
-    warnings: repaired.warnings,
+    warnings: [
+      ...repaired.warnings,
+      `coverage ${coverage.changed}/${coverage.total}`,
+    ],
     failedKeys: repaired.failedKeys,
   };
 }

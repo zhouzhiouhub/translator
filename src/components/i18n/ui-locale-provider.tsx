@@ -2,13 +2,13 @@
 
 import {
   NextIntlClientProvider,
-  useLocale,
   useMessages,
   useTranslations,
 } from "next-intl";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { isFixedUiLocale } from "@/i18n/ui-locales";
+import { useRouteLocale } from "@/i18n/use-route-locale";
 
 function GeneratingBanner() {
   const t = useTranslations("settings");
@@ -24,35 +24,48 @@ function GeneratingBanner() {
   );
 }
 
-function DocumentLangSync({ children }: { children: ReactNode }) {
-  const routeLocale = useLocale();
-  const preferred = useUiLocaleStore((s) => s.preferredUiLocale);
-  const dynamicMessages = useUiLocaleStore((s) => s.dynamicMessages);
-
+function DocumentLangSync({
+  lang,
+  children,
+}: {
+  lang: string;
+  children: ReactNode;
+}) {
   useEffect(() => {
-    const lang =
-      !isFixedUiLocale(preferred) && dynamicMessages
-        ? preferred
-        : routeLocale;
     document.documentElement.lang = lang;
-  }, [preferred, dynamicMessages, routeLocale]);
+  }, [lang]);
 
   return <>{children}</>;
 }
 
 /**
- * Dynamic packs override messages only — keep the route locale so
- * `/${locale}/...` links stay on built-in zh-CN / en-US paths.
+ * Dynamic packs override messages client-side.
+ * Provider remounts via `key` so consumers always pick up new catalogs.
+ * Navigation must use `useRouteLocale()` (URL), not `useLocale()`.
  */
 export function UiLocaleProvider({ children }: { children: ReactNode }) {
-  const routeLocale = useLocale();
+  const routeLocale = useRouteLocale();
   const routeMessages = useMessages();
   const preferred = useUiLocaleStore((s) => s.preferredUiLocale);
   const setPreferredUiLocale = useUiLocaleStore((s) => s.setPreferredUiLocale);
   const dynamicMessages = useUiLocaleStore((s) => s.dynamicMessages);
   const hydrateDynamicPack = useUiLocaleStore((s) => s.hydrateDynamicPack);
+  const [persistReady, setPersistReady] = useState(() =>
+    useUiLocaleStore.persist.hasHydrated(),
+  );
 
   useEffect(() => {
+    const unsub = useUiLocaleStore.persist.onFinishHydration(() => {
+      setPersistReady(true);
+    });
+    if (useUiLocaleStore.persist.hasHydrated()) {
+      setPersistReady(true);
+    }
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!persistReady) return;
     // URL is source of truth for built-in locales.
     if (
       isFixedUiLocale(routeLocale) &&
@@ -61,29 +74,34 @@ export function UiLocaleProvider({ children }: { children: ReactNode }) {
     ) {
       setPreferredUiLocale(routeLocale);
     }
-  }, [routeLocale, preferred, setPreferredUiLocale]);
+  }, [persistReady, routeLocale, preferred, setPreferredUiLocale]);
 
   useEffect(() => {
+    if (!persistReady) return;
     void hydrateDynamicPack();
-  }, [hydrateDynamicPack, preferred]);
+  }, [persistReady, hydrateDynamicPack, preferred]);
 
-  const overrideMessages = useMemo(() => {
-    if (isFixedUiLocale(preferred) || !dynamicMessages) return null;
-    return dynamicMessages as typeof routeMessages;
-  }, [preferred, dynamicMessages, routeMessages]);
+  const activeDynamic =
+    !isFixedUiLocale(preferred) && dynamicMessages
+      ? dynamicMessages
+      : null;
 
-  const inner = (
-    <DocumentLangSync>
-      <GeneratingBanner />
-      {children}
-    </DocumentLangSync>
+  const providerLocale = activeDynamic ? preferred : routeLocale;
+  const providerMessages = useMemo(
+    () => (activeDynamic ?? routeMessages) as typeof routeMessages,
+    [activeDynamic, routeMessages],
   );
 
-  if (!overrideMessages) return inner;
-
   return (
-    <NextIntlClientProvider locale={routeLocale} messages={overrideMessages}>
-      {inner}
+    <NextIntlClientProvider
+      key={`ui-${providerLocale}-${activeDynamic ? "dyn" : "route"}`}
+      locale={providerLocale}
+      messages={providerMessages}
+    >
+      <DocumentLangSync lang={providerLocale}>
+        <GeneratingBanner />
+        {children}
+      </DocumentLangSync>
     </NextIntlClientProvider>
   );
 }

@@ -40,7 +40,7 @@ export interface LocalePackValidation {
 
 /**
  * Ensure key set matches source; restore missing keys from source;
- * flag placeholder mismatches (keep AI text but warn).
+ * flag placeholder mismatches (restore source for those keys).
  */
 export function validateAndRepairLocalePack(
   source: Record<string, unknown>,
@@ -76,6 +76,30 @@ export function validateAndRepairLocalePack(
   return { messages, warnings, failedKeys: [...new Set(failedKeys)] };
 }
 
+/** Ratio of leaf strings that differ from the source catalog. */
+export function translationCoverage(
+  source: Record<string, unknown>,
+  target: Record<string, unknown>,
+): { total: number; changed: number; ratio: number } {
+  const keys = flattenKeys(source);
+  let total = 0;
+  let changed = 0;
+  for (const key of keys) {
+    const srcVal = getByPath(source, key);
+    const tgtVal = getByPath(target, key);
+    if (typeof srcVal !== "string") continue;
+    total += 1;
+    if (typeof tgtVal === "string" && tgtVal.trim() !== srcVal.trim()) {
+      changed += 1;
+    }
+  }
+  return { total, changed, ratio: total === 0 ? 0 : changed / total };
+}
+
+/**
+ * Parse model output into a message catalog object.
+ * Unwraps common wrappers (messages / sourceMessages / translatedMessages).
+ */
 export function parseLocaleJson(text: string): Record<string, unknown> {
   let raw = text.trim();
   const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -87,5 +111,35 @@ export function parseLocaleJson(text: string): Record<string, unknown> {
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Locale pack response is not a JSON object");
   }
-  return parsed as Record<string, unknown>;
+  return unwrapLocaleObject(parsed as Record<string, unknown>);
+}
+
+function unwrapLocaleObject(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
+  const wrappers = [
+    "messages",
+    "translatedMessages",
+    "sourceMessages",
+    "localePack",
+    "catalog",
+  ] as const;
+
+  for (const key of wrappers) {
+    const inner = obj[key];
+    if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+      const record = inner as Record<string, unknown>;
+      // Prefer unwrapping when outer looks like a response envelope.
+      const outerKeys = Object.keys(obj);
+      if (
+        outerKeys.includes("sourceLocale") ||
+        outerKeys.includes("targetLocale") ||
+        outerKeys.includes("referenceMessages") ||
+        (outerKeys.length <= 4 && !obj.nav && !obj.common)
+      ) {
+        return unwrapLocaleObject(record);
+      }
+    }
+  }
+  return obj;
 }

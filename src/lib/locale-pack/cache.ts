@@ -1,7 +1,7 @@
 import { hashString } from "./hash";
 import type { UiLocale } from "@/i18n/ui-locales";
 
-export const LOCALE_PACK_PROMPT_VERSION = "v1";
+export const LOCALE_PACK_PROMPT_VERSION = "v2";
 
 const STORAGE_PREFIX = "kinolin.localePack.";
 

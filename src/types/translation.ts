@@ -1,5 +1,3 @@
-export type TranslationEngine = "google" | "ai";
-
 export type AiProviderId =
   | "openai"
   | "claude"
@@ -36,7 +34,6 @@ export interface TranslateInput {
 export interface TranslateResult {
   text: string;
   detectedSourceLanguage?: string;
-  engine: TranslationEngine;
   model?: string;
   style?: TranslationStyle;
   durationMs: number;

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Sparkles, Zap } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { checkAiConfig, runTranslation } from "@/agents/translator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,8 +49,6 @@ export function TranslatorPanel() {
   const {
     inputText,
     setInputText,
-    engine,
-    setEngine,
     targetLanguage,
     setTargetLanguage,
     style,
@@ -75,7 +73,6 @@ export function TranslatorPanel() {
         text: inputText,
         targetLanguage,
         style,
-        engine,
         aiConfig,
       }),
     onSuccess: (data) => setResult(data),
@@ -98,12 +95,10 @@ export function TranslatorPanel() {
       showToast(t("emptyInput"));
       return;
     }
-    if (engine === "ai") {
-      const check = checkAiConfig(aiConfig);
-      if (!check.ok) {
-        setGateOpen(true);
-        return;
-      }
+    const check = checkAiConfig(aiConfig);
+    if (!check.ok) {
+      setGateOpen(true);
+      return;
     }
     mutation.mutate();
   }
@@ -120,21 +115,28 @@ export function TranslatorPanel() {
       </header>
 
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <div className="mb-4 flex gap-2">
-          <button
-            type="button"
-            className="rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
-          >
-            {t("tabText")}
-          </button>
-          <button
-            type="button"
-            disabled
-            className="rounded-xl px-3 py-1.5 text-sm text-muted"
-          >
-            {t("tabDocument")}
-            <span className="ml-2 text-[11px] text-warning">{tCommon("comingSoon")}</span>
-          </button>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+            >
+              {t("tabText")}
+            </button>
+            <button
+              type="button"
+              disabled
+              className="rounded-xl px-3 py-1.5 text-sm text-muted"
+            >
+              {t("tabDocument")}
+              <span className="ml-2 text-[11px] text-warning">
+                {tCommon("comingSoon")}
+              </span>
+            </button>
+          </div>
+          <Badge tone={aiConfigured ? "success" : "warning"}>
+            {aiConfigured ? t("configured") : t("notConfigured")}
+          </Badge>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
@@ -156,31 +158,9 @@ export function TranslatorPanel() {
           </div>
 
           <aside className="flex flex-col gap-3 rounded-xl border border-border bg-slate-50/80 p-3">
-            <label className="text-xs font-medium text-muted">{t("engine")}</label>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={engine === "google" ? "default" : "secondary"}
-                size="sm"
-                onClick={() => setEngine("google")}
-              >
-                {t("engineGoogle")}
-              </Button>
-              <Button
-                type="button"
-                variant={engine === "ai" ? "default" : "secondary"}
-                size="sm"
-                onClick={() => setEngine("ai")}
-                className="relative"
-              >
-                {t("engineAi")}
-                <Badge
-                  tone={aiConfigured ? "success" : "warning"}
-                  className="absolute -right-1 -top-2"
-                >
-                  {aiConfigured ? t("configured") : t("notConfigured")}
-                </Badge>
-              </Button>
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm">
+              <Sparkles className="h-4 w-4 text-brand-violet" />
+              <span className="font-medium">{t("agentLabel")}</span>
             </div>
 
             <label className="text-xs font-medium text-muted">{t("targetLanguage")}</label>
@@ -199,7 +179,6 @@ export function TranslatorPanel() {
             <Select
               value={style}
               onChange={(e) => setStyle(e.target.value as TranslationStyle)}
-              disabled={engine !== "ai"}
             >
               {STYLES.map((s) => (
                 <option key={s} value={s}>
@@ -235,17 +214,14 @@ export function TranslatorPanel() {
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2">
-        <EngineCard
-          icon={<Zap className="h-4 w-4 text-primary" />}
-          title={t("googleDescTitle")}
-          desc={t("googleDesc")}
-        />
-        <EngineCard
-          icon={<Sparkles className="h-4 w-4 text-brand-violet" />}
-          title={t("aiDescTitle")}
-          desc={t("aiDesc")}
-        />
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex gap-3">
+          <Sparkles className="mt-0.5 h-4 w-4 text-brand-violet" />
+          <div>
+            <h3 className="text-sm font-semibold">{t("agentDescTitle")}</h3>
+            <p className="mt-1 text-xs text-muted">{t("agentDesc")}</p>
+          </div>
+        </div>
       </section>
 
       {result ? (
@@ -291,15 +267,11 @@ export function TranslatorPanel() {
                 {result.text}
               </div>
               <p className="mt-2 text-xs text-muted">
-                {result.engine === "google"
-                  ? t("metaGoogle", {
-                      duration: `${(result.durationMs / 1000).toFixed(1)}s`,
-                    })
-                  : t("metaAi", {
-                      model: result.model ?? "—",
-                      style: result.style ?? "default",
-                      duration: `${(result.durationMs / 1000).toFixed(1)}s`,
-                    })}
+                {t("metaAi", {
+                  model: result.model ?? "—",
+                  style: result.style ?? "default",
+                  duration: `${(result.durationMs / 1000).toFixed(1)}s`,
+                })}
               </p>
             </div>
           </div>
@@ -311,7 +283,7 @@ export function TranslatorPanel() {
           [
             ["featureDetect", "featureDetectDesc"],
             ["featureStyle", "featureStyleDesc"],
-            ["featureDual", "featureDualDesc"],
+            ["featureAgent", "featureAgentDesc"],
             ["featureByok", "featureByokDesc"],
           ] as const
         ).map(([title, desc]) => (
@@ -331,15 +303,8 @@ export function TranslatorPanel() {
         title={tGate("title")}
         footer={
           <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setGateOpen(false);
-                setEngine("google");
-                mutation.mutate();
-              }}
-            >
-              {tGate("useGoogle")}
+            <Button variant="secondary" onClick={() => setGateOpen(false)}>
+              {tCommon("cancel")}
             </Button>
             <Button
               onClick={() => {
@@ -352,6 +317,7 @@ export function TranslatorPanel() {
           </>
         }
       >
+        <p className="mb-3">{tGate("requiredHint")}</p>
         <ul className="space-y-2">
           <CheckRow label={tGate("checkProvider")} ok={check.hasProvider} />
           <CheckRow label={tGate("checkModel")} ok={check.hasModel} />
@@ -373,26 +339,6 @@ export function TranslatorPanel() {
   );
 }
 
-function EngineCard({
-  icon,
-  title,
-  desc,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <div className="flex gap-3 rounded-2xl border border-border bg-card p-4">
-      <div className="mt-0.5">{icon}</div>
-      <div>
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <p className="mt-1 text-xs text-muted">{desc}</p>
-      </div>
-    </div>
-  );
-}
-
 function CheckRow({
   label,
   ok,
@@ -405,9 +351,7 @@ function CheckRow({
   return (
     <li className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-foreground">
       <span>{label}</span>
-      <span>
-        {pending ? "—" : ok ? "✅" : "❌"}
-      </span>
+      <span>{pending ? "—" : ok ? "✅" : "❌"}</span>
     </li>
   );
 }

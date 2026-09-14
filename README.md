@@ -1,6 +1,6 @@
 # Kinolin Translator
 
-AI Translation Agent：Google 基础翻译 + BYOK AI，逐步演进为 Website Localization Agent。
+AI Translation Agent（BYOK）：仅保留 Agent 路径，无 Google / 传统机器翻译。
 
 ## 技术栈
 
@@ -9,32 +9,21 @@ Next.js · TypeScript · Tailwind · next-intl · Zustand · TanStack Query · O
 ## 开发
 
 ```bash
-cp .env.example .env.local
-# 填写 GOOGLE_TRANSLATE_API_KEY（可选，缺省时 Google 接口返回 503）
-
 npm install
 npm run dev
 ```
 
 打开 [http://localhost:3000](http://localhost:3000)（会跳转到 `/zh-CN`）。
 
+先到 **配置 AI** 填写 Provider / Model / API Key，再使用翻译官。
+
 ## 品牌资源
 
-Logo 源文件目录：`D:\Desktop\dev\logo`  
-已复制到本仓库：`public/brand/`
-
-| 文件 | 用途 |
-|------|------|
-| `symbol.svg` | 侧栏 / favicon |
-| `logo.svg` | 浅色横版 wordmark |
-| `logo-dark.svg` | 深色背景版 |
-| `logo-mono.svg` | 单色版 |
+Logo 源文件：`D:\Desktop\dev\logo` → 已复制到 `public/brand/`
 
 ## Phase 1 范围
 
-- 文本翻译（Google 服务端代理 + AI BYOK）
-- 配置 AI（Provider / Model / Key / Compatible Base）
-- 中英固定语言包（next-intl）
+- AI Translation Agent（BYOK 浏览器直连）
+- Provider Adapter：OpenAI / Claude / Gemini / DeepSeek / Compatible
 - 配置检查弹窗与结果区
-
-详见设计稿与 `技术设计.md`。
+- 中英固定语言包（next-intl）

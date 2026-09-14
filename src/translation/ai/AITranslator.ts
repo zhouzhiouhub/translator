@@ -16,7 +16,6 @@ export class AITranslator implements Translator {
     return {
       text: result.text,
       detectedSourceLanguage: result.detectedSourceLanguage,
-      engine: "ai",
       model: result.model,
       style: input.style,
       durationMs: result.durationMs,

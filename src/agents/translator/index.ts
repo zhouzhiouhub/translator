@@ -1,9 +1,7 @@
-import type { AIConfig, TranslationEngine, TranslateInput, TranslateResult } from "@/types/translation";
+import type { AIConfig, TranslateInput, TranslateResult } from "@/types/translation";
 import { AITranslator } from "@/translation/ai/AITranslator";
-import { GoogleTranslator } from "@/translation/google/GoogleTranslator";
 
 export interface TranslateOrchestrationInput extends TranslateInput {
-  engine: TranslationEngine;
   aiConfig?: AIConfig | null;
 }
 
@@ -25,18 +23,14 @@ export function checkAiConfig(config?: AIConfig | null): AiConfigCheck {
   return { ok, hasProvider, hasModel, hasKey, connectionOk };
 }
 
+/** Translation Agent — BYOK AI only. */
 export async function runTranslation(
   input: TranslateOrchestrationInput,
 ): Promise<TranslateResult> {
-  if (input.engine === "ai") {
-    const check = checkAiConfig(input.aiConfig);
-    if (!check.ok || !input.aiConfig) {
-      throw new Error("AI_NOT_CONFIGURED");
-    }
-    const translator = new AITranslator(input.aiConfig);
-    return translator.translate(input);
+  const check = checkAiConfig(input.aiConfig);
+  if (!check.ok || !input.aiConfig) {
+    throw new Error("AI_NOT_CONFIGURED");
   }
-
-  const translator = new GoogleTranslator();
+  const translator = new AITranslator(input.aiConfig);
   return translator.translate(input);
 }

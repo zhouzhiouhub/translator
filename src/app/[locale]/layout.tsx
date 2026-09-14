@@ -9,7 +9,7 @@ import "../globals.css";
 
 export const metadata: Metadata = {
   title: "Kinolin Translator",
-  description: "AI Translation Agent — Google baseline + BYOK AI",
+  description: "AI Translation Agent — BYOK only",
   icons: {
     icon: "/brand/symbol.svg",
   },

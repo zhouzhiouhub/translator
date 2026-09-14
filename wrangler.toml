@@ -9,4 +9,4 @@ directory = ".open-next/assets"
 binding = "ASSETS"
 
 [vars]
-# GOOGLE_CLOUD_PROJECT / GOOGLE_TRANSLATE_API_KEY via wrangler secret / .dev.vars
+# Phase 1: BYOK only — no server-side translation keys required

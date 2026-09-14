@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   AIConfig,
-  TranslationEngine,
   TranslationStyle,
   TranslateResult,
 } from "@/types/translation";
@@ -18,7 +17,6 @@ const MAX_CHARS = 2000;
 interface AppState {
   sourceLanguage: string;
   targetLanguage: string;
-  engine: TranslationEngine;
   style: TranslationStyle;
   followUiToTarget: boolean;
   inputText: string;
@@ -28,7 +26,6 @@ interface AppState {
   maxChars: number;
   setSourceLanguage: (v: string) => void;
   setTargetLanguage: (v: string) => void;
-  setEngine: (v: TranslationEngine) => void;
   setStyle: (v: TranslationStyle) => void;
   setFollowUiToTarget: (v: boolean) => void;
   setInputText: (v: string) => void;
@@ -43,7 +40,6 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       sourceLanguage: "auto",
       targetLanguage: "en",
-      engine: "google",
       style: "default",
       followUiToTarget: false,
       inputText: "",
@@ -53,7 +49,6 @@ export const useAppStore = create<AppState>()(
       maxChars: MAX_CHARS,
       setSourceLanguage: (sourceLanguage) => set({ sourceLanguage }),
       setTargetLanguage: (targetLanguage) => set({ targetLanguage }),
-      setEngine: (engine) => set({ engine }),
       setStyle: (style) => set({ style }),
       setFollowUiToTarget: (followUiToTarget) => set({ followUiToTarget }),
       setInputText: (inputText) =>
@@ -83,7 +78,6 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         sourceLanguage: state.sourceLanguage,
         targetLanguage: state.targetLanguage,
-        engine: state.engine,
         style: state.style,
         followUiToTarget: state.followUiToTarget,
         // never persist apiKey here — kept in dedicated storage module

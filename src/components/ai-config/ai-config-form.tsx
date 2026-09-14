@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { createAIProvider, DEFAULT_MODELS, PROVIDER_OPTIONS } from "@/ai/client/factory";
+import {
+  createAIProvider,
+  DEFAULT_MODELS,
+  PROVIDER_OPTIONS,
+} from "@/ai/client/factory";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +15,14 @@ import { Select } from "@/components/ui/select";
 import { maskApiKey } from "@/lib/security/ai-config-storage";
 import { useAppStore } from "@/stores/app";
 import type { AiProviderId } from "@/types/translation";
+
+const MODEL_PLACEHOLDER_KEYS = {
+  openai: "modelPlaceholderOpenai",
+  claude: "modelPlaceholderClaude",
+  gemini: "modelPlaceholderGemini",
+  deepseek: "modelPlaceholderDeepseek",
+  compatible: "modelPlaceholderCompatible",
+} as const;
 
 export function AiConfigForm() {
   const t = useTranslations("aiConfig");
@@ -24,6 +36,8 @@ export function AiConfigForm() {
   const [baseUrl, setBaseUrl] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<"ok" | "error">("ok");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     void hydrateAiConfig();
@@ -32,17 +46,30 @@ export function AiConfigForm() {
   useEffect(() => {
     if (!aiConfig) return;
     setProvider(aiConfig.provider);
-    setModel(aiConfig.model);
+    setModel(aiConfig.model || DEFAULT_MODELS[aiConfig.provider]);
     setApiKey(aiConfig.apiKey);
     setBaseUrl(aiConfig.baseUrl ?? "");
   }, [aiConfig]);
 
+  function flash(tone: "ok" | "error", text: string) {
+    setMessageTone(tone);
+    setMessage(text);
+  }
+
   const testMutation = useMutation({
     mutationFn: async () => {
+      const nextModel = model.trim() || DEFAULT_MODELS[provider];
+      const nextKey = apiKey.trim();
+      if (!nextModel || !nextKey) {
+        throw new Error(t("saveIncomplete"));
+      }
+      if (provider === "compatible" && !baseUrl.trim()) {
+        throw new Error(t("saveIncomplete"));
+      }
       const config = {
         provider,
-        model: model.trim(),
-        apiKey: apiKey.trim(),
+        model: nextModel,
+        apiKey: nextKey,
         baseUrl: provider === "compatible" ? baseUrl.trim() : undefined,
       };
       const p = createAIProvider(config);
@@ -55,32 +82,69 @@ export function AiConfigForm() {
       });
       return true;
     },
-    onSuccess: () => setMessage(t("testSuccess")),
-    onError: (err: Error) => setMessage(err.message),
+    onSuccess: () => flash("ok", t("testSuccess")),
+    onError: (err: Error) => flash("error", err.message || t("statusFailed")),
   });
 
   async function onSave() {
-    await setAiConfig({
-      provider,
-      model: model.trim(),
-      apiKey: apiKey.trim(),
-      baseUrl: provider === "compatible" ? baseUrl.trim() : undefined,
-      lastTestAt: aiConfig?.lastTestAt,
-      lastTestOk: aiConfig?.lastTestOk,
-    });
-    setMessage(tCommon("save"));
+    setSaving(true);
+    try {
+      const nextModel = (model.trim() || DEFAULT_MODELS[provider]).trim();
+      const nextKey = apiKey.trim();
+
+      if (!nextKey) {
+        flash("error", t("saveIncomplete"));
+        return;
+      }
+      if (!nextModel) {
+        flash("error", t("saveIncomplete"));
+        return;
+      }
+      if (provider === "compatible" && !baseUrl.trim()) {
+        flash("error", t("saveIncomplete"));
+        return;
+      }
+
+      // Keep controlled input in sync if we fell back to default model
+      if (!model.trim() && nextModel) {
+        setModel(nextModel);
+      }
+
+      await setAiConfig({
+        provider,
+        model: nextModel,
+        apiKey: nextKey,
+        baseUrl: provider === "compatible" ? baseUrl.trim() : undefined,
+        lastTestAt: aiConfig?.lastTestAt,
+        lastTestOk: aiConfig?.lastTestOk,
+      });
+
+      flash("ok", t("saveSuccess"));
+    } catch (err) {
+      const text =
+        err instanceof Error && err.message
+          ? err.message
+          : "保存失败，请检查浏览器是否禁用了本地存储";
+      flash("error", text);
+    } finally {
+      setSaving(false);
+    }
   }
 
   const statusTone = !aiConfigured
     ? "warning"
     : aiConfig?.lastTestOk === false
       ? "danger"
-      : "success";
+      : aiConfig?.lastTestOk === true
+        ? "success"
+        : "primary";
   const statusLabel = !aiConfigured
     ? t("statusUnconfigured")
     : aiConfig?.lastTestOk === false
       ? t("statusFailed")
-      : t("statusConfigured");
+      : aiConfig?.lastTestOk === true
+        ? t("statusConfigured")
+        : t("statusSavedNeedTest");
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -94,6 +158,29 @@ export function AiConfigForm() {
           <span className="text-sm text-muted">{t("status")}</span>
           <Badge tone={statusTone}>{statusLabel}</Badge>
         </div>
+
+        {message ? (
+          <div
+            role="status"
+            className={
+              messageTone === "error"
+                ? "mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                : "mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+            }
+          >
+            {message}
+          </div>
+        ) : null}
+
+        {aiConfigured && aiConfig ? (
+          <p className="mb-4 rounded-xl bg-slate-50 px-3 py-2 text-xs text-muted">
+            {t("savedSummary", {
+              provider: aiConfig.provider,
+              model: aiConfig.model || "—",
+              key: maskApiKey(aiConfig.apiKey),
+            })}
+          </p>
+        ) : null}
 
         <div className="grid gap-4">
           <Field label={t("provider")}>
@@ -117,7 +204,7 @@ export function AiConfigForm() {
             <Input
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              placeholder={t("modelPlaceholder")}
+              placeholder={t(MODEL_PLACEHOLDER_KEYS[provider])}
             />
           </Field>
 
@@ -127,7 +214,9 @@ export function AiConfigForm() {
                 type={showKey ? "text" : "password"}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
+                onInput={(e) => setApiKey((e.target as HTMLInputElement).value)}
                 autoComplete="off"
+                name="kinolin-ai-api-key"
               />
               <Button
                 type="button"
@@ -139,7 +228,9 @@ export function AiConfigForm() {
             </div>
             {apiKey ? (
               <p className="mt-1 text-xs text-muted">{maskApiKey(apiKey)}</p>
-            ) : null}
+            ) : (
+              <p className="mt-1 text-xs text-muted">{t("apiKeyEmptyHint")}</p>
+            )}
           </Field>
 
           {provider === "compatible" ? (
@@ -155,8 +246,14 @@ export function AiConfigForm() {
           ) : null}
 
           <div className="flex flex-wrap gap-2 pt-2">
-            <Button type="button" onClick={() => void onSave()}>
-              {t("save")}
+            <Button
+              type="button"
+              disabled={saving}
+              onClick={() => {
+                void onSave();
+              }}
+            >
+              {saving ? tCommon("loading") : t("save")}
             </Button>
             <Button
               type="button"
@@ -169,17 +266,20 @@ export function AiConfigForm() {
             <Button
               type="button"
               variant="ghost"
-              onClick={async () => {
-                await clearAiKey();
-                setApiKey("");
-                setMessage(t("clearKey"));
+              onClick={() => {
+                void (async () => {
+                  await clearAiKey();
+                  setApiKey("");
+                  setModel(DEFAULT_MODELS.openai);
+                  setProvider("openai");
+                  setBaseUrl("");
+                  flash("ok", t("clearKey"));
+                })();
               }}
             >
               {t("clearKey")}
             </Button>
           </div>
-
-          {message ? <p className="text-sm text-primary">{message}</p> : null}
         </div>
       </section>
 
@@ -187,15 +287,9 @@ export function AiConfigForm() {
         {t("byokNotice")}
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <h3 className="text-sm font-semibold">{t("compareAi")}</h3>
-          <p className="mt-1 text-xs text-muted">{t("compareAiDesc")}</p>
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <h3 className="text-sm font-semibold">{t("compareGoogle")}</h3>
-          <p className="mt-1 text-xs text-muted">{t("compareGoogleDesc")}</p>
-        </div>
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <h3 className="text-sm font-semibold">{t("compareAi")}</h3>
+        <p className="mt-1 text-xs text-muted">{t("compareAiDesc")}</p>
       </section>
     </div>
   );
@@ -208,10 +302,11 @@ function Field({
   label: string;
   children: React.ReactNode;
 }) {
+  // Use div instead of label so nested buttons (Show / etc.) don't steal clicks
   return (
-    <label className="block">
+    <div className="block">
       <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
       {children}
-    </label>
+    </div>
   );
 }

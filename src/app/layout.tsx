@@ -1,8 +1,6 @@
-/** Root layout is locale-aware under `[locale]`. Keep a minimal shell for non-locale routes (api). */
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+import type { ReactNode } from "react";
+
+/** Required by Next.js; document shell lives in `[locale]/layout`. */
+export default function RootLayout({ children }: { children: ReactNode }) {
   return children;
 }

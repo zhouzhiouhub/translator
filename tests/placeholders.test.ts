@@ -1,5 +1,5 @@
-import { describe, expect, it } from "node:test";
 import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import {
   extractPlaceholders,
   localeKeysMatch,
@@ -14,7 +14,6 @@ describe("placeholders", () => {
   });
 
   it("matches equal placeholders", () => {
-    expect(placeholdersMatch("Hi {{name}}", "你好 {{name}}")).toBe?.(true);
     assert.equal(placeholdersMatch("Hi {{name}}", "你好 {{name}}"), true);
     assert.equal(placeholdersMatch("Hi {{name}}", "你好"), false);
   });

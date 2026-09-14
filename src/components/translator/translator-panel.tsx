@@ -96,7 +96,7 @@ export function TranslatorPanel() {
       if (followUiToTarget) {
         const uiLocale = mapTargetLangToUiLocale(targetLanguage);
         if (uiLocale) {
-          void applyLocale(uiLocale, { aiConfig })
+          void applyLocale(uiLocale)
             .then((result) => {
               if (result.kind === "fixed") {
                 const rest =
@@ -108,8 +108,8 @@ export function TranslatorPanel() {
               }
             })
             .catch((err: Error) => {
-              if (err.message === "AI_NOT_CONFIGURED") {
-                setGateOpen(true);
+              if (err.message === "LOCALE_PACK_NOT_READY") {
+                setToast(t("followUiPackMissing"));
                 return;
               }
               setToast(err.message);

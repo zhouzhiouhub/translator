@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AppShell } from "@/components/layout/app-shell";
 import { UiLocaleProvider } from "@/components/i18n/ui-locale-provider";
 import { Providers } from "@/components/providers";
 import { locales, type AppLocale } from "@/i18n/config";
@@ -41,12 +41,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
             <UiLocaleProvider>
-              <div className="flex h-dvh overflow-hidden">
-                <AppSidebar />
-                <main className="min-h-0 flex-1 overflow-y-auto p-6 md:p-8">
-                  {children}
-                </main>
-              </div>
+              <AppShell>{children}</AppShell>
             </UiLocaleProvider>
           </Providers>
         </NextIntlClientProvider>

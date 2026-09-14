@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   Languages,
@@ -11,14 +11,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { locales, type AppLocale } from "@/i18n/config";
 import { useRouteLocale } from "@/i18n/use-route-locale";
-import {
-  UI_LOCALE_LABELS,
-  isFixedUiLocale,
-  type UiLocale,
-} from "@/i18n/ui-locales";
-import { useUiLocaleStore } from "@/stores/ui-locale";
 
 const navItems = [
   { key: "translator", href: "", icon: Languages, phase: 1 },
@@ -32,18 +25,6 @@ export function AppSidebar() {
   const t = useTranslations("nav");
   const routeLocale = useRouteLocale();
   const pathname = usePathname();
-  const router = useRouter();
-  const preferredUiLocale = useUiLocaleStore((s) => s.preferredUiLocale);
-  const applyLocale = useUiLocaleStore((s) => s.applyLocale);
-
-  const activeUiLocale: UiLocale = !isFixedUiLocale(preferredUiLocale)
-    ? preferredUiLocale
-    : routeLocale;
-
-  async function onFixedLocaleClick(code: AppLocale) {
-    await applyLocale(code);
-    router.push(swapLocalePath(pathname, routeLocale, code));
-  }
 
   return (
     <aside className="flex h-full w-[220px] shrink-0 flex-col overflow-y-auto border-r border-border bg-sidebar/90 backdrop-blur">
@@ -113,46 +94,6 @@ export function AppSidebar() {
           );
         })}
       </nav>
-
-      <div className="border-t border-border p-3">
-        <div className="flex gap-1">
-          {locales.map((code) => (
-            <button
-              key={code}
-              type="button"
-              onClick={() => void onFixedLocaleClick(code)}
-              className={cn(
-                "flex-1 rounded-lg px-2 py-1.5 text-center text-xs",
-                activeUiLocale === code
-                  ? "bg-primary text-white"
-                  : "bg-slate-100 text-muted hover:bg-slate-200",
-              )}
-            >
-              {UI_LOCALE_LABELS[code]}
-            </button>
-          ))}
-        </div>
-        {!isFixedUiLocale(activeUiLocale) ? (
-          <Link
-            href={`/${routeLocale}/settings`}
-            className="mt-2 block rounded-lg bg-primary/10 px-2 py-1.5 text-center text-xs font-medium text-primary hover:bg-primary/15"
-          >
-            {UI_LOCALE_LABELS[activeUiLocale]}
-          </Link>
-        ) : (
-          <Link
-            href={`/${routeLocale}/settings`}
-            className="mt-2 block text-center text-[11px] text-muted hover:text-foreground"
-          >
-            {t("settings")}
-          </Link>
-        )}
-      </div>
     </aside>
   );
-}
-
-function swapLocalePath(pathname: string, current: string, next: AppLocale) {
-  const rest = pathname.replace(new RegExp(`^/${current}`), "") || "";
-  return `/${next}${rest}`;
 }

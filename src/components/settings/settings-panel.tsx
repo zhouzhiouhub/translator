@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { usePathname, useRouter } from "next/navigation";
 import { Bot, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -18,30 +17,23 @@ import {
 } from "@/i18n/ui-locales";
 import { cn } from "@/lib/utils";
 
-function swapLocalePath(pathname: string, current: string, next: string) {
-  const rest = pathname.replace(new RegExp(`^/${current}`), "") || "";
-  return `/${next}${rest}`;
-}
-
 export function SettingsPanel() {
   const t = useTranslations("settings");
   const tGate = useTranslations("aiGate");
   const routeLocale = useRouteLocale();
-  const pathname = usePathname();
-  const router = useRouter();
 
   const aiConfig = useAppStore((s) => s.aiConfig);
   const aiConfigured = useAppStore((s) => s.aiConfigured);
   const hydrateAiConfig = useAppStore((s) => s.hydrateAiConfig);
 
-  const preferredUiLocale = useUiLocaleStore((s) => s.preferredUiLocale);
   const status = useUiLocaleStore((s) => s.status);
-  const applyLocale = useUiLocaleStore((s) => s.applyLocale);
+  const generatePack = useUiLocaleStore((s) => s.generatePack);
   const packStatusFor = useUiLocaleStore((s) => s.packStatusFor);
+  const readyLocales = useUiLocaleStore((s) => s.readyLocales);
 
-  const [selected, setSelected] = useState<UiLocale>(preferredUiLocale);
+  const [selected, setSelected] = useState<UiLocale>("ja");
   const [packKind, setPackKind] = useState<"builtin" | "cached" | "needGenerate">(
-    "builtin",
+    "needGenerate",
   );
   const [toast, setToast] = useState<string | null>(null);
 
@@ -50,37 +42,27 @@ export function SettingsPanel() {
   }, [hydrateAiConfig]);
 
   useEffect(() => {
-    setSelected(preferredUiLocale);
-  }, [preferredUiLocale]);
-
-  useEffect(() => {
     void packStatusFor(selected).then(setPackKind);
-  }, [selected, packStatusFor, status]);
+  }, [selected, packStatusFor, status, readyLocales]);
 
   function showToast(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(null), 2800);
   }
 
-  async function onApply(force = false) {
-    if (!isFixedUiLocale(selected) && !aiConfigured) {
+  async function onGenerate(force = false) {
+    if (isFixedUiLocale(selected)) {
+      showToast(t("builtinNoGenerate"));
+      return;
+    }
+    if (!aiConfigured) {
       showToast(t("aiRequired"));
       return;
     }
 
     try {
-      const result = await applyLocale(selected, {
-        aiConfig,
-        force,
-      });
-
-      if (result.kind === "fixed") {
-        router.push(swapLocalePath(pathname, routeLocale, result.locale));
-        showToast(t("applySuccess"));
-        return;
-      }
-
-      showToast(force || packKind === "needGenerate" ? t("generateSuccess") : t("applySuccess"));
+      await generatePack(selected, { aiConfig, force });
+      showToast(t("generateSuccess"));
       void packStatusFor(selected).then(setPackKind);
     } catch (err) {
       if (err instanceof Error && err.message === "AI_NOT_CONFIGURED") {
@@ -140,6 +122,7 @@ export function SettingsPanel() {
           {ALL_UI_LOCALES.map((code) => (
             <option key={code} value={code}>
               {UI_LOCALE_LABELS[code]}
+              {isFixedUiLocale(code) ? ` · ${t("statusBuiltin")}` : ""}
             </option>
           ))}
         </Select>
@@ -157,13 +140,6 @@ export function SettingsPanel() {
           >
             {statusLabel}
           </span>
-          {preferredUiLocale === selected &&
-          status !== "generating" &&
-          (isFixedUiLocale(selected) || packKind === "cached") ? (
-            <span className="rounded-lg bg-primary/10 px-2 py-1 text-primary">
-              {t("statusActive")}
-            </span>
-          ) : null}
         </div>
 
         {needsAi ? (
@@ -178,28 +154,20 @@ export function SettingsPanel() {
           </p>
         ) : null}
 
+        <p className="mt-3 text-xs text-muted">{t("generateOnlyHint")}</p>
+
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
             type="button"
-            disabled={busy || needsAi}
-            onClick={() => void onApply(false)}
+            disabled={busy || needsAi || isFixedUiLocale(selected)}
+            onClick={() => void onGenerate(packKind === "cached")}
           >
             {busy
               ? t("statusGenerating")
-              : packKind === "needGenerate"
-                ? t("generateAndApply")
-                : t("apply")}
+              : packKind === "cached"
+                ? t("regenerate")
+                : t("generate")}
           </Button>
-          {!isFixedUiLocale(selected) && packKind === "cached" ? (
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy || needsAi}
-              onClick={() => void onApply(true)}
-            >
-              {t("regenerate")}
-            </Button>
-          ) : null}
         </div>
       </section>
 

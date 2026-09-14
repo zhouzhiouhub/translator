@@ -7,7 +7,7 @@ import { Copy, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { LanguageSelect } from "@/components/ui/language-select";
 import { PageContainer } from "@/components/layout/page-container";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
@@ -145,18 +145,12 @@ export function HistoryPanel() {
           placeholder={t("searchPlaceholder")}
           className="flex-1"
         />
-        <Select
+        <LanguageSelect
           value={langFilter}
-          onChange={(e) => setLangFilter(e.target.value)}
+          onChange={setLangFilter}
           className="sm:w-48"
-        >
-          <option value="all">{t("filterAll")}</option>
-          {TARGET_LANGS.map((lang) => (
-            <option key={lang.value} value={lang.value}>
-              {lang.label}
-            </option>
-          ))}
-        </Select>
+          allOptionLabel={t("filterAll")}
+        />
       </div>
 
       {entries.length === 0 ? (

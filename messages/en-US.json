@@ -7,7 +7,9 @@
     "clear": "Clear",
     "loading": "Loading…",
     "retry": "Retry",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "languageSearchPlaceholder": "Search by name or code…",
+    "languageSearchEmpty": "No matching languages"
   },
   "brand": {
     "name": "Kinolin Translator",

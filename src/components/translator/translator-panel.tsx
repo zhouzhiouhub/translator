@@ -10,12 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { LanguageSelect } from "@/components/ui/language-select";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { mapTargetLangToUiLocale } from "@/i18n/ui-locales";
-import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
 import { PageContainer } from "@/components/layout/page-container";
 import type { TranslationStyle } from "@/types/translation";
 
@@ -38,7 +38,6 @@ export function TranslatorPanel() {
   const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
-  const TARGET_LANGS = useLocalizedLanguageOptions();
 
   const {
     inputText,
@@ -188,16 +187,10 @@ export function TranslatorPanel() {
 
           <aside className="flex flex-col gap-3 rounded-xl border border-border bg-slate-50/80 p-3">
             <label className="text-xs font-medium text-muted">{t("targetLanguage")}</label>
-            <Select
+            <LanguageSelect
               value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
-            >
-              {TARGET_LANGS.map((lang) => (
-                <option key={lang.value} value={lang.value}>
-                  {lang.label}
-                </option>
-              ))}
-            </Select>
+              onChange={setTargetLanguage}
+            />
 
             <label className="text-xs font-medium text-muted">{t("style")}</label>
             <Select

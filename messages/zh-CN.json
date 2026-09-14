@@ -7,7 +7,9 @@
     "clear": "清除",
     "loading": "加载中…",
     "retry": "重试",
-    "comingSoon": "即将推出"
+    "comingSoon": "即将推出",
+    "languageSearchPlaceholder": "搜索语言名称或代码…",
+    "languageSearchEmpty": "没有匹配的语言"
   },
   "brand": {
     "name": "Kinolin 翻译官",

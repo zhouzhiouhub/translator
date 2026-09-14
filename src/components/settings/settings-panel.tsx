@@ -5,20 +5,18 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Bot, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import { LanguageSelect } from "@/components/ui/language-select";
 import { PageContainer } from "@/components/layout/page-container";
 import { useAppStore } from "@/stores/app";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { isFixedUiLocale, type UiLocale } from "@/i18n/ui-locales";
-import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
 import { cn } from "@/lib/utils";
 
 export function SettingsPanel() {
   const t = useTranslations("settings");
   const tGate = useTranslations("aiGate");
   const routeLocale = useRouteLocale();
-  const GENERATE_LANGS = useLocalizedLanguageOptions({ excludeBuiltin: true });
 
   const aiConfig = useAppStore((s) => s.aiConfig);
   const aiConfigured = useAppStore((s) => s.aiConfigured);
@@ -112,17 +110,12 @@ export function SettingsPanel() {
         <label className="mb-1 block text-xs font-medium text-muted">
           {t("uiLanguage")}
         </label>
-        <Select
+        <LanguageSelect
           value={selected}
           disabled={busy}
-          onChange={(e) => setSelected(e.target.value as UiLocale)}
-        >
-          {GENERATE_LANGS.map((lang) => (
-            <option key={lang.value} value={lang.value}>
-              {lang.label}
-            </option>
-          ))}
-        </Select>
+          excludeBuiltin
+          onChange={(v) => setSelected(v as UiLocale)}
+        />
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
           <span

@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kinolin Translator
 
-## Getting Started
+AI Translation Agent：Google 基础翻译 + BYOK AI，逐步演进为 Website Localization Agent。
 
-First, run the development server:
+## 技术栈
+
+Next.js · TypeScript · Tailwind · next-intl · Zustand · TanStack Query · OpenNext / Cloudflare
+
+## 开发
 
 ```bash
+cp .env.example .env.local
+# 填写 GOOGLE_TRANSLATE_API_KEY（可选，缺省时 Google 接口返回 503）
+
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 [http://localhost:3000](http://localhost:3000)（会跳转到 `/zh-CN`）。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 品牌资源
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Logo 源文件目录：`D:\Desktop\dev\logo`  
+已复制到本仓库：`public/brand/`
 
-## Learn More
+| 文件 | 用途 |
+|------|------|
+| `symbol.svg` | 侧栏 / favicon |
+| `logo.svg` | 浅色横版 wordmark |
+| `logo-dark.svg` | 深色背景版 |
+| `logo-mono.svg` | 单色版 |
 
-To learn more about Next.js, take a look at the following resources:
+## Phase 1 范围
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 文本翻译（Google 服务端代理 + AI BYOK）
+- 配置 AI（Provider / Model / Key / Compatible Base）
+- 中英固定语言包（next-intl）
+- 配置检查弹窗与结果区
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+详见设计稿与 `技术设计.md`。

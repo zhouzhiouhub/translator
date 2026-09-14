@@ -1,0 +1,12 @@
+name = "kinolin-translator"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+main = ".open-next/worker.js"
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[vars]
+# GOOGLE_CLOUD_PROJECT / GOOGLE_TRANSLATE_API_KEY via wrangler secret / .dev.vars

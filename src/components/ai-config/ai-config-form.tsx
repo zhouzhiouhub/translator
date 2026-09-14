@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import {
@@ -32,12 +32,16 @@ export function AiConfigForm() {
 
   const [provider, setProvider] = useState<AiProviderId>("openai");
   const [model, setModel] = useState(DEFAULT_MODELS.openai);
-  const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"ok" | "error">("ok");
   const [saving, setSaving] = useState(false);
+  const [keyPreview, setKeyPreview] = useState("");
+
+  // Uncontrolled password field — browser autofill often does not update React state
+  const apiKeyRef = useRef<HTMLInputElement>(null);
+  const modelRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void hydrateAiConfig();
@@ -47,8 +51,11 @@ export function AiConfigForm() {
     if (!aiConfig) return;
     setProvider(aiConfig.provider);
     setModel(aiConfig.model || DEFAULT_MODELS[aiConfig.provider]);
-    setApiKey(aiConfig.apiKey);
     setBaseUrl(aiConfig.baseUrl ?? "");
+    setKeyPreview(aiConfig.apiKey ? maskApiKey(aiConfig.apiKey) : "");
+    if (apiKeyRef.current) {
+      apiKeyRef.current.value = aiConfig.apiKey;
+    }
   }, [aiConfig]);
 
   function flash(tone: "ok" | "error", text: string) {
@@ -56,10 +63,19 @@ export function AiConfigForm() {
     setMessage(text);
   }
 
+  function readApiKey() {
+    return (apiKeyRef.current?.value ?? "").trim();
+  }
+
+  function readModel() {
+    const fromInput = (modelRef.current?.value ?? model).trim();
+    return fromInput || DEFAULT_MODELS[provider];
+  }
+
   const testMutation = useMutation({
     mutationFn: async () => {
-      const nextModel = model.trim() || DEFAULT_MODELS[provider];
-      const nextKey = apiKey.trim();
+      const nextModel = readModel();
+      const nextKey = readApiKey();
       if (!nextModel || !nextKey) {
         throw new Error(t("saveIncomplete"));
       }
@@ -89,14 +105,10 @@ export function AiConfigForm() {
   async function onSave() {
     setSaving(true);
     try {
-      const nextModel = (model.trim() || DEFAULT_MODELS[provider]).trim();
-      const nextKey = apiKey.trim();
+      const nextModel = readModel();
+      const nextKey = readApiKey();
 
-      if (!nextKey) {
-        flash("error", t("saveIncomplete"));
-        return;
-      }
-      if (!nextModel) {
+      if (!nextKey || !nextModel) {
         flash("error", t("saveIncomplete"));
         return;
       }
@@ -105,10 +117,8 @@ export function AiConfigForm() {
         return;
       }
 
-      // Keep controlled input in sync if we fell back to default model
-      if (!model.trim() && nextModel) {
-        setModel(nextModel);
-      }
+      setModel(nextModel);
+      setKeyPreview(maskApiKey(nextKey));
 
       await setAiConfig({
         provider,
@@ -182,7 +192,13 @@ export function AiConfigForm() {
           </p>
         ) : null}
 
-        <div className="grid gap-4">
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void onSave();
+          }}
+        >
           <Field label={t("provider")}>
             <Select
               value={provider}
@@ -202,6 +218,7 @@ export function AiConfigForm() {
 
           <Field label={t("model")}>
             <Input
+              ref={modelRef}
               value={model}
               onChange={(e) => setModel(e.target.value)}
               placeholder={t(MODEL_PLACEHOLDER_KEYS[provider])}
@@ -211,12 +228,12 @@ export function AiConfigForm() {
           <Field label={t("apiKey")}>
             <div className="flex gap-2">
               <Input
+                ref={apiKeyRef}
                 type={showKey ? "text" : "password"}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                onInput={(e) => setApiKey((e.target as HTMLInputElement).value)}
+                defaultValue=""
                 autoComplete="off"
                 name="kinolin-ai-api-key"
+                onChange={(e) => setKeyPreview(maskApiKey(e.target.value))}
               />
               <Button
                 type="button"
@@ -226,8 +243,8 @@ export function AiConfigForm() {
                 {showKey ? "Hide" : "Show"}
               </Button>
             </div>
-            {apiKey ? (
-              <p className="mt-1 text-xs text-muted">{maskApiKey(apiKey)}</p>
+            {keyPreview ? (
+              <p className="mt-1 text-xs text-muted">{keyPreview}</p>
             ) : (
               <p className="mt-1 text-xs text-muted">{t("apiKeyEmptyHint")}</p>
             )}
@@ -246,13 +263,7 @@ export function AiConfigForm() {
           ) : null}
 
           <div className="flex flex-wrap gap-2 pt-2">
-            <Button
-              type="button"
-              disabled={saving}
-              onClick={() => {
-                void onSave();
-              }}
-            >
+            <Button type="submit" disabled={saving}>
               {saving ? tCommon("loading") : t("save")}
             </Button>
             <Button
@@ -269,7 +280,8 @@ export function AiConfigForm() {
               onClick={() => {
                 void (async () => {
                   await clearAiKey();
-                  setApiKey("");
+                  if (apiKeyRef.current) apiKeyRef.current.value = "";
+                  setKeyPreview("");
                   setModel(DEFAULT_MODELS.openai);
                   setProvider("openai");
                   setBaseUrl("");
@@ -280,7 +292,7 @@ export function AiConfigForm() {
               {t("clearKey")}
             </Button>
           </div>
-        </div>
+        </form>
       </section>
 
       <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-900">
@@ -302,7 +314,6 @@ function Field({
   label: string;
   children: React.ReactNode;
 }) {
-  // Use div instead of label so nested buttons (Show / etc.) don't steal clicks
   return (
     <div className="block">
       <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>

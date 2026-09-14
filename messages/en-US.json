@@ -104,8 +104,58 @@
   },
   "help": {
     "title": "Help",
-    "placeholder": "Full help docs arrive in a later phase. Configure AI first, then try the Translation Agent."
+    "subtitle": "Kinolin Translator is a BYOK AI Translation Agent: configure your own API key locally, then translate in the browser.",
+    "quickStartTitle": "Quick start",
+    "quickStartSteps": {
+      "1": "Open AI Config, pick a provider, enter a model and API key, then save and test the connection.",
+      "2": "Go to Translator, paste text, choose target language and style, then tap Translate.",
+      "3": "Use History to search, copy, or restore a past translation."
+    },
+    "configTitle": "How to configure AI",
+    "configIntro": "Translation is blocked until AI is configured. Open AI Config in the sidebar and follow these steps:",
+    "configSteps": {
+      "1": "Choose a provider: OpenAI, Claude, Gemini, DeepSeek, or OpenAI Compatible.",
+      "2": "Enter the model id (e.g. gpt-4o, deepseek-chat). Compatible also needs a trusted API base URL.",
+      "3": "Paste your API key (it must be typed or pasted; autofill dots alone will not save).",
+      "4": "Tap Save, then Test connection to verify.",
+      "5": "When status shows Configured, you are ready to translate."
+    },
+    "configTipsTitle": "Configuration tips",
+    "configTips": {
+      "1": "API keys stay in this browser only and are never uploaded to Kinolin; calls go straight to the provider.",
+      "2": "Do not save keys on shared devices; use Clear key when finished.",
+      "3": "Gemini needs reachability to Google. If it keeps failing, try DeepSeek or a Compatible gateway.",
+      "4": "For Compatible, only enter API base URLs you trust to avoid phishing."
+    },
+    "useTitle": "How to translate",
+    "useIntro": "After configuration, use the Translator page:",
+    "useSteps": {
+      "1": "Paste or type source text (watch the character limit).",
+      "2": "Pick a target language; optionally enable Switch the whole UI to the target language.",
+      "3": "Choose a style: Default, Natural, Casual, Business, Formal, Technical, Academic, or Localized.",
+      "4": "Tap Translate. Results show source, translation, and model / style / duration.",
+      "5": "Copy the translation, or tap Retranslate with the current settings."
+    },
+    "historyTitle": "Translation history",
+    "historyBody": "Each successful translation is saved locally (up to 100 entries). In History you can search, filter by language, copy, restore to the translator, delete one entry, or clear all. Clearing cannot be undone.",
+    "uiLangTitle": "UI language",
+    "uiLangBody": "Use the sidebar footer to switch the app UI between 中文 and English. That is separate from the translation target language. Enabling Switch the whole UI to the target language tries to follow the matching locale pack (built-in: Chinese and English).",
+    "faqTitle": "FAQ",
+    "faq": {
+      "q1": "Why does Translate open Configure AI?",
+      "a1": "The Translation Agent needs a provider, model, and API key. Open AI Config, save, and preferably test the connection.",
+      "q2": "Still Not configured after saving?",
+      "a2": "Make sure the key was typed or pasted. Browser autofill dots alone do not write a real key. Save again and refresh.",
+      "q3": "When will Document translation work?",
+      "a3": "The Document tab is Coming soon. Phase 1 supports text translation only.",
+      "q4": "Who pays for the API?",
+      "a4": "Usage is billed to your provider account (BYOK). Kinolin does not charge your API usage."
+    },
+    "linkConfig": "AI Config",
+    "linkTranslator": "Translator",
+    "linkHistory": "History"
   },
+
   "history": {
     "title": "Translation history",
     "subtitle": "Stored in this browser · up to 100 entries",

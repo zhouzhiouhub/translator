@@ -104,8 +104,58 @@
   },
   "help": {
     "title": "使用帮助",
-    "placeholder": "帮助文档将在后续版本完善。请先配置 AI，再体验 Translation Agent。"
+    "subtitle": "Kinolin 翻译官是 BYOK 的 AI Translation Agent：用你自己的 API Key，在本机完成配置与翻译。",
+    "quickStartTitle": "快速开始",
+    "quickStartSteps": {
+      "1": "打开「配置 AI」，选择 Provider、填写模型与 API Key，保存并测试连接。",
+      "2": "回到「翻译官」，输入文本，选择目标语言与风格，点击「开始翻译」。",
+      "3": "需要时到「翻译历史」搜索、复制或回填到翻译官。"
+    },
+    "configTitle": "如何配置 AI",
+    "configIntro": "未完成配置时无法翻译。侧边栏进入「配置 AI」，按下列步骤设置：",
+    "configSteps": {
+      "1": "选择 Provider：OpenAI、Claude、Gemini、DeepSeek，或 OpenAI Compatible。",
+      "2": "填写模型 ID（如 gpt-4o、deepseek-chat）；Compatible 需另填可信的 API 地址。",
+      "3": "粘贴 API Key（须真正输入或粘贴，仅显示圆点的自动填充无法保存）。",
+      "4": "点击「保存配置」，建议再点「测试连接」确认可用。",
+      "5": "右上角或翻译页状态变为「已配置」后即可翻译。"
+    },
+    "configTipsTitle": "配置注意",
+    "configTips": {
+      "1": "API Key 只保存在本机浏览器，不会上传到 Kinolin 服务器；调用时由浏览器直连厂商。",
+      "2": "请勿在公用电脑上保存 Key；用完可点「清除 Key」。",
+      "3": "Gemini 需能访问 Google；若持续失败，可改用 DeepSeek 或 Compatible 网关。",
+      "4": "Compatible 的 API 地址请只填写你信任的网关，谨防钓鱼。"
+    },
+    "useTitle": "如何使用翻译官",
+    "useIntro": "配置完成后，在「翻译官」页即可开始：",
+    "useSteps": {
+      "1": "在输入框粘贴或输入原文（注意字符上限提示）。",
+      "2": "选择目标语言；需要时可勾选「用目标语言切换整个 UI」。",
+      "3": "选择翻译风格：默认、自然、口语、商务、正式、技术、学术、本地化等。",
+      "4": "点击「开始翻译」；结果区会展示原文、译文与模型/风格/耗时。",
+      "5": "可复制译文，或点「重新翻译」用当前设置再跑一遍。"
+    },
+    "historyTitle": "翻译历史",
+    "historyBody": "每次成功翻译会写入本机历史（最多 100 条）。可在「翻译历史」中搜索、按语言筛选、复制译文、回填到翻译官，或删除/清空记录。清空不可撤销。",
+    "uiLangTitle": "切换界面语言",
+    "uiLangBody": "侧边栏底部可在中文 / English 之间切换应用界面。这与翻译目标语言相互独立；勾选「用目标语言切换整个 UI」时，会尽量把界面切到对应语言包（当前内置中英）。",
+    "faqTitle": "常见问题",
+    "faq": {
+      "q1": "为什么点翻译会弹出「去配置 AI」？",
+      "a1": "Translation Agent 必须先有完整的 Provider、模型与 API Key。请到「配置 AI」保存并建议测试连接。",
+      "q2": "保存后仍显示未配置？",
+      "a2": "请确认 Key 是手动输入或粘贴的；仅浏览器自动填充显示圆点时无法真正写入。保存后刷新页面再看状态。",
+      "q3": "文档翻译什么时候可用？",
+      "a3": "「文档翻译」标签目前为即将推出，Phase 1 仅支持文本翻译。",
+      "q4": "费用由谁承担？",
+      "a4": "费用走你在各 AI 厂商账户的额度（BYOK），Kinolin 不代扣你的 API 费用。"
+    },
+    "linkConfig": "配置 AI",
+    "linkTranslator": "翻译官",
+    "linkHistory": "翻译历史"
   },
+
   "history": {
     "title": "翻译历史",
     "subtitle": "保存在本机浏览器，最多 100 条",

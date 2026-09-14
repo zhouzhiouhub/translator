@@ -227,16 +227,6 @@ export function TranslatorPanel() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-4">
-        <div className="flex gap-3">
-          <Sparkles className="mt-0.5 h-4 w-4 text-brand-violet" />
-          <div>
-            <h3 className="text-sm font-semibold">{t("agentDescTitle")}</h3>
-            <p className="mt-1 text-xs text-muted">{t("agentDesc")}</p>
-          </div>
-        </div>
-      </section>
-
       {result ? (
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
           <div className="grid gap-4 md:grid-cols-2">

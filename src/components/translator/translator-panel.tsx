@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
 import { checkAiConfig, runTranslation } from "@/agents/translator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -192,11 +191,6 @@ export function TranslatorPanel() {
           </div>
 
           <aside className="flex flex-col gap-3 rounded-xl border border-border bg-slate-50/80 p-3">
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm">
-              <Sparkles className="h-4 w-4 text-brand-violet" />
-              <span className="font-medium">{t("agentLabel")}</span>
-            </div>
-
             <label className="text-xs font-medium text-muted">{t("targetLanguage")}</label>
             <Select
               value={targetLanguage}

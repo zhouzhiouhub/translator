@@ -36,14 +36,19 @@ export const PROVIDER_OPTIONS: { id: AiProviderId; label: string }[] = [
 export const DEFAULT_MODELS: Record<AiProviderId, string> = {
   openai: "gpt-4o",
   claude: "claude-sonnet-4-20250514",
-  gemini: "gemini-2.5-flash",
+  gemini: "gemini-3.5-flash-lite",
   deepseek: "deepseek-chat",
   compatible: "",
 };
 
 /** Suggested models shown in AI config UI */
 export const MODEL_SUGGESTIONS: Partial<Record<AiProviderId, string[]>> = {
-  gemini: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"],
+  gemini: [
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-lite-latest",
+    "gemini-flash-latest",
+  ],
   deepseek: ["deepseek-chat", "deepseek-reasoner"],
   openai: ["gpt-4o", "gpt-4o-mini"],
 };

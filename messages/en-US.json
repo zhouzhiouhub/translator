@@ -87,7 +87,7 @@
     "compareAiDesc": "Context, style, and upcoming UI locale packs — billed to your account",
     "modelPlaceholderOpenai": "e.g. gpt-4o",
     "modelPlaceholderClaude": "e.g. claude-sonnet-4-20250514",
-    "modelPlaceholderGemini": "e.g. gemini-2.5-flash",
+    "modelPlaceholderGemini": "e.g. gemini-3.5-flash-lite",
     "modelPlaceholderDeepseek": "e.g. deepseek-chat",
     "modelPlaceholderCompatible": "model id supported by your gateway",
     "baseUrlPlaceholder": "https://api.example.com/v1"

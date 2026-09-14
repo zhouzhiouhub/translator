@@ -87,7 +87,7 @@
     "compareAiDesc": "上下文、风格、后续 UI 语言包；费用走你的账户",
     "modelPlaceholderOpenai": "例如 gpt-4o",
     "modelPlaceholderClaude": "例如 claude-sonnet-4-20250514",
-    "modelPlaceholderGemini": "例如 gemini-2.5-flash",
+    "modelPlaceholderGemini": "例如 gemini-3.5-flash-lite",
     "modelPlaceholderDeepseek": "例如 deepseek-chat",
     "modelPlaceholderCompatible": "填写网关支持的 model id",
     "baseUrlPlaceholder": "https://api.example.com/v1"

@@ -118,10 +118,9 @@ function formatGeminiError(
   if (status === 404) {
     return [
       `Gemini 返回 404（${phase} / ${model}）。`,
-      "常见原因：1) 当前网络访问不了 Google Gemini（国内很常见）；",
-      "2) Key 无效或未开通 Generative Language API；",
-      "3) 模型名不对。",
-      "建议改用 DeepSeek，或 OpenAI Compatible 网关做跨区测试。",
+      "新 Key 请用 gemini-3.5-flash-lite / gemini-3.1-flash-lite / gemini-flash-lite-latest；",
+      "2.0/2.5 系列已不对新用户开放。",
+      "若仍失败再查网络或配额。",
       snippet ? `详情：${snippet}` : "",
     ]
       .filter(Boolean)

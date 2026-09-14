@@ -1,8 +1,6 @@
 import createMiddleware from "next-intl/middleware";
 import { defaultLocale, locales } from "./i18n/config";
 
-const localePattern = locales.join("|");
-
 export default createMiddleware({
   locales: [...locales],
   defaultLocale,
@@ -10,9 +8,6 @@ export default createMiddleware({
 });
 
 export const config = {
-  matcher: [
-    "/",
-    `/(${localePattern})/:path*`,
-    "/((?!api|_next|_vercel|.*\\..*).*)",
-  ],
+  // Do not match /_next or static files — avoids chunk 404s under locale routes.
+  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
 };

@@ -12,7 +12,6 @@ import { PageContainer } from "@/components/layout/page-container";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
 import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
-import { localizedLanguageName } from "@/i18n/languages";
 import type { HistoryEntry, TranslationStyle } from "@/types/translation";
 
 const STYLE_KEYS = [
@@ -64,7 +63,9 @@ export function HistoryPanel() {
   const TARGET_LANGS = useLocalizedLanguageOptions();
 
   function langLabel(code: string) {
-    return localizedLanguageName(code, locale);
+    return (
+      TARGET_LANGS.find((l) => l.value === code)?.label ?? code
+    );
   }
 
   const entries = useHistoryStore((s) => s.entries);

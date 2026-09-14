@@ -7,7 +7,7 @@ import { Check, ChevronDown, Languages } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { isUiLocale, type UiLocale } from "@/i18n/ui-locales";
-import { localizedLanguageName } from "@/i18n/languages";
+import { localizedLanguageName, stableLanguageName } from "@/i18n/languages";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 
 function swapLocalePath(pathname: string, current: string, next: string) {
@@ -28,13 +28,18 @@ export function UiLocaleSwitcher() {
 
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const active: UiLocale = isUiLocale(routeLocale) ? routeLocale : preferred;
 
   function labelFor(code: string) {
-    return localizedLanguageName(code, locale);
+    return (mounted ? localizedLanguageName : stableLanguageName)(code, locale);
   }
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     void refreshReadyLocales();

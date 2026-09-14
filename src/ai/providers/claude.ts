@@ -27,6 +27,10 @@ export class ClaudeProvider implements AIProvider {
   async translate(params: TranslateParams): Promise<TranslateResult> {
     const started = Date.now();
     const styleHint = params.style && params.style !== "default" ? ` Style: ${params.style}.` : "";
+    const system =
+      params.systemPrompt ??
+      `You are Kinolin Translator. Translate accurately and naturally.${styleHint} Output only the translation.`;
+    const maxTokens = params.systemPrompt ? 16_384 : 4096;
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -37,8 +41,8 @@ export class ClaudeProvider implements AIProvider {
       },
       body: JSON.stringify({
         model: this.config.model,
-        max_tokens: 4096,
-        system: `You are Kinolin Translator. Translate accurately and naturally.${styleHint} Output only the translation.`,
+        max_tokens: maxTokens,
+        system,
         messages: [
           {
             role: "user",

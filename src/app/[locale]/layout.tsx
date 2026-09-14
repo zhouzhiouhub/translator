@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { UiLocaleProvider } from "@/components/i18n/ui-locale-provider";
 import { Providers } from "@/components/providers";
 import { locales, type AppLocale } from "@/i18n/config";
 import "../globals.css";
@@ -39,12 +40,14 @@ export default async function LocaleLayout({
       <body className="antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
-            <div className="flex h-dvh overflow-hidden">
-              <AppSidebar />
-              <main className="min-h-0 flex-1 overflow-y-auto p-6 md:p-8">
-                {children}
-              </main>
-            </div>
+            <UiLocaleProvider>
+              <div className="flex h-dvh overflow-hidden">
+                <AppSidebar />
+                <main className="min-h-0 flex-1 overflow-y-auto p-6 md:p-8">
+                  {children}
+                </main>
+              </div>
+            </UiLocaleProvider>
           </Providers>
         </NextIntlClientProvider>
       </body>

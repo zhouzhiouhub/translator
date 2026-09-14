@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
   Languages,
@@ -11,20 +11,40 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { locales, localeLabels, type AppLocale } from "@/i18n/config";
+import { locales, type AppLocale } from "@/i18n/config";
+import {
+  UI_LOCALE_LABELS,
+  isFixedUiLocale,
+  type UiLocale,
+} from "@/i18n/ui-locales";
+import { useUiLocaleStore } from "@/stores/ui-locale";
 
 const navItems = [
   { key: "translator", href: "", icon: Languages, phase: 1 },
   { key: "aiConfig", href: "/settings/ai", icon: Bot, phase: 1 },
   { key: "history", href: "/history", icon: History, phase: 1 },
   { key: "help", href: "/help", icon: HelpCircle, phase: 1 },
-  { key: "settings", href: "/settings", icon: Settings, phase: 2 },
+  { key: "settings", href: "/settings", icon: Settings, phase: 1 },
 ] as const;
 
 export function AppSidebar() {
   const t = useTranslations("nav");
   const locale = useLocale();
   const pathname = usePathname();
+  const router = useRouter();
+  const preferredUiLocale = useUiLocaleStore((s) => s.preferredUiLocale);
+  const applyLocale = useUiLocaleStore((s) => s.applyLocale);
+
+  const activeUiLocale: UiLocale = !isFixedUiLocale(preferredUiLocale)
+    ? preferredUiLocale
+    : isFixedUiLocale(locale)
+      ? locale
+      : preferredUiLocale;
+
+  async function onFixedLocaleClick(code: AppLocale) {
+    await applyLocale(code);
+    router.push(swapLocalePath(pathname, locale, code));
+  }
 
   return (
     <aside className="flex h-full w-[220px] shrink-0 flex-col overflow-y-auto border-r border-border bg-sidebar/90 backdrop-blur">
@@ -56,7 +76,10 @@ export function AppSidebar() {
           const active =
             item.href === ""
               ? pathname === `/${locale}` || pathname === `/${locale}/`
-              : pathname.startsWith(href);
+              : item.href === "/settings"
+                ? pathname === `/${locale}/settings` ||
+                  pathname === `/${locale}/settings/`
+                : pathname.startsWith(href);
           const disabled = item.phase > 1;
           const Icon = item.icon;
 
@@ -94,20 +117,36 @@ export function AppSidebar() {
       <div className="border-t border-border p-3">
         <div className="flex gap-1">
           {locales.map((code) => (
-            <Link
+            <button
               key={code}
-              href={swapLocalePath(pathname, locale, code)}
+              type="button"
+              onClick={() => void onFixedLocaleClick(code)}
               className={cn(
                 "flex-1 rounded-lg px-2 py-1.5 text-center text-xs",
-                locale === code
+                activeUiLocale === code
                   ? "bg-primary text-white"
                   : "bg-slate-100 text-muted hover:bg-slate-200",
               )}
             >
-              {localeLabels[code]}
-            </Link>
+              {UI_LOCALE_LABELS[code]}
+            </button>
           ))}
         </div>
+        {!isFixedUiLocale(activeUiLocale) ? (
+          <Link
+            href={`/${locale}/settings`}
+            className="mt-2 block rounded-lg bg-primary/10 px-2 py-1.5 text-center text-xs font-medium text-primary hover:bg-primary/15"
+          >
+            {UI_LOCALE_LABELS[activeUiLocale]}
+          </Link>
+        ) : (
+          <Link
+            href={`/${locale}/settings`}
+            className="mt-2 block text-center text-[11px] text-muted hover:text-foreground"
+          >
+            {t("settings")}
+          </Link>
+        )}
       </div>
     </aside>
   );

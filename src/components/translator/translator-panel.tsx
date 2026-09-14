@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
+import { useUiLocaleStore } from "@/stores/ui-locale";
+import { mapTargetLangToUiLocale } from "@/i18n/ui-locales";
 import type { TranslationStyle } from "@/types/translation";
 
 const TARGET_LANGS = [
@@ -64,6 +66,7 @@ export function TranslatorPanel() {
     hydrateAiConfig,
   } = useAppStore();
   const addEntry = useHistoryStore((s) => s.addEntry);
+  const applyLocale = useUiLocaleStore((s) => s.applyLocale);
 
   useEffect(() => {
     void hydrateAiConfig();
@@ -88,6 +91,30 @@ export function TranslatorPanel() {
         model: data.model,
         durationMs: data.durationMs,
       });
+
+      if (followUiToTarget) {
+        const uiLocale = mapTargetLangToUiLocale(targetLanguage);
+        if (uiLocale) {
+          void applyLocale(uiLocale, { aiConfig })
+            .then((result) => {
+              if (result.kind === "fixed") {
+                const rest =
+                  window.location.pathname.replace(
+                    new RegExp(`^/${locale}`),
+                    "",
+                  ) || "";
+                router.push(`/${result.locale}${rest}`);
+              }
+            })
+            .catch((err: Error) => {
+              if (err.message === "AI_NOT_CONFIGURED") {
+                setGateOpen(true);
+                return;
+              }
+              setToast(err.message);
+            });
+        }
+      }
     },
     onError: (err: Error) => {
       if (err.message === "AI_NOT_CONFIGURED") {
@@ -210,18 +237,14 @@ export function TranslatorPanel() {
               ))}
             </Select>
 
-            <label className="mt-1 flex items-start gap-2 text-xs text-muted opacity-60">
+            <label className="mt-1 flex items-start gap-2 text-xs text-muted">
               <input
                 type="checkbox"
                 checked={followUiToTarget}
-                disabled
                 onChange={(e) => setFollowUiToTarget(e.target.checked)}
                 className="mt-0.5"
               />
-              <span>
-                {t("followUi")}
-                <span className="ml-1 text-warning">Phase 2</span>
-              </span>
+              <span>{t("followUi")}</span>
             </label>
           </aside>
         </div>

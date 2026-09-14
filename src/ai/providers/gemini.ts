@@ -72,6 +72,9 @@ export class GeminiProvider implements AIProvider {
     const model = this.config.model.trim();
     const styleHint =
       params.style && params.style !== "default" ? ` Style: ${params.style}.` : "";
+    const system =
+      params.systemPrompt ??
+      `You are Kinolin Translator. Translate accurately and naturally.${styleHint} Output only the translation.`;
     const res = await fetch(this.generateUrl(model), {
       method: "POST",
       headers: this.headers(),
@@ -80,7 +83,7 @@ export class GeminiProvider implements AIProvider {
           {
             parts: [
               {
-                text: `You are Kinolin Translator. Translate accurately and naturally.${styleHint} Output only the translation.\nTarget language: ${params.targetLanguage}\n\n${params.text}`,
+                text: `${system}\nTarget language: ${params.targetLanguage}\n\n${params.text}`,
               },
             ],
           },

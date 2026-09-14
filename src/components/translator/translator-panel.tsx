@@ -15,14 +15,9 @@ import { useHistoryStore } from "@/stores/history";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { mapTargetLangToUiLocale } from "@/i18n/ui-locales";
-import { languagesForSelect } from "@/i18n/languages";
+import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
 import { PageContainer } from "@/components/layout/page-container";
 import type { TranslationStyle } from "@/types/translation";
-
-const TARGET_LANGS = languagesForSelect().map((l) => ({
-  value: l.code,
-  label: `${l.nameZh} · ${l.nameEn}`,
-}));
 
 const STYLES: TranslationStyle[] = [
   "default",
@@ -43,6 +38,7 @@ export function TranslatorPanel() {
   const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
+  const TARGET_LANGS = useLocalizedLanguageOptions();
 
   const {
     inputText,

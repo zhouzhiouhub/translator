@@ -11,13 +11,9 @@ import { Select } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/page-container";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
-import { languagesForSelect } from "@/i18n/languages";
+import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
+import { localizedLanguageName } from "@/i18n/languages";
 import type { HistoryEntry, TranslationStyle } from "@/types/translation";
-
-const TARGET_LANGS = languagesForSelect().map((l) => ({
-  value: l.code,
-  label: `${l.nameZh} · ${l.nameEn}`,
-}));
 
 const STYLE_KEYS = [
   "default",
@@ -40,10 +36,6 @@ function styleLabelKey(style: TranslationStyle) {
     | "styleTechnical"
     | "styleAcademic"
     | "styleLocalized";
-}
-
-function langLabel(code: string) {
-  return TARGET_LANGS.find((l) => l.value === code)?.label ?? code;
 }
 
 function truncate(text: string, max = 160) {
@@ -69,6 +61,11 @@ export function HistoryPanel() {
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
+  const TARGET_LANGS = useLocalizedLanguageOptions();
+
+  function langLabel(code: string) {
+    return localizedLanguageName(code, locale);
+  }
 
   const entries = useHistoryStore((s) => s.entries);
   const removeEntry = useHistoryStore((s) => s.removeEntry);

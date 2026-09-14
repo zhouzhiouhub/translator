@@ -11,17 +11,14 @@ import { useAppStore } from "@/stores/app";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { isFixedUiLocale, type UiLocale } from "@/i18n/ui-locales";
-import { languagesForSelect } from "@/i18n/languages";
+import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
 import { cn } from "@/lib/utils";
-
-const GENERATE_LANGS = languagesForSelect().filter(
-  (l) => !isFixedUiLocale(l.code),
-);
 
 export function SettingsPanel() {
   const t = useTranslations("settings");
   const tGate = useTranslations("aiGate");
   const routeLocale = useRouteLocale();
+  const GENERATE_LANGS = useLocalizedLanguageOptions({ excludeBuiltin: true });
 
   const aiConfig = useAppStore((s) => s.aiConfig);
   const aiConfigured = useAppStore((s) => s.aiConfigured);
@@ -121,8 +118,8 @@ export function SettingsPanel() {
           onChange={(e) => setSelected(e.target.value as UiLocale)}
         >
           {GENERATE_LANGS.map((lang) => (
-            <option key={lang.code} value={lang.code}>
-              {lang.nameZh} · {lang.nameEn}
+            <option key={lang.value} value={lang.value}>
+              {lang.label}
             </option>
           ))}
         </Select>

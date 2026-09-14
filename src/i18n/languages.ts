@@ -265,6 +265,7 @@ export function getLanguage(code: string): AppLanguage | undefined {
   return byCode.get(code);
 }
 
+/** Fallback labels (catalog defaults). Prefer `localizedLanguageName` for UI. */
 export function languageLabel(
   code: string,
   display: "zh" | "en" | "both" = "zh",
@@ -276,11 +277,30 @@ export function languageLabel(
   return lang.nameZh;
 }
 
+/**
+ * Language name in the current UI locale via Intl.DisplayNames.
+ * Falls back to catalog English / Chinese when the runtime has no data.
+ */
+export function localizedLanguageName(code: string, uiLocale: string): string {
+  const tag = uiLocale || "en";
+  try {
+    const dn = new Intl.DisplayNames([tag, "en"], { type: "language" });
+    const name = dn.of(code);
+    if (name && name.toLowerCase() !== code.toLowerCase()) return name;
+  } catch {
+    /* unsupported locale / code */
+  }
+  const lang = byCode.get(code);
+  if (!lang) return code;
+  if (tag.toLowerCase().startsWith("zh")) return lang.nameZh;
+  return lang.nameEn;
+}
+
 /** Codes that already have built-in next-intl message packs. */
 export const BUILTIN_MESSAGE_CODES = ["zh-CN", "en-US"] as const;
 
 /**
- * Prefer common targets at the top of selects; rest stay alphabetical by nameZh.
+ * Prefer common targets at the top of selects; rest sorted by localized name.
  */
 export const POPULAR_LANGUAGE_CODES = [
   "zh-CN",
@@ -302,13 +322,16 @@ export const POPULAR_LANGUAGE_CODES = [
   "tr",
 ] as const;
 
-export function languagesForSelect(): AppLanguage[] {
+export function languagesForSelect(uiLocale = "zh-CN"): AppLanguage[] {
   const popular = new Set<string>(POPULAR_LANGUAGE_CODES);
   const head = POPULAR_LANGUAGE_CODES.map((c) => byCode.get(c)).filter(
     (l): l is AppLanguage => Boolean(l),
   );
   const rest = APP_LANGUAGES.filter((l) => !popular.has(l.code)).sort((a, b) =>
-    a.nameZh.localeCompare(b.nameZh, "zh-CN"),
+    localizedLanguageName(a.code, uiLocale).localeCompare(
+      localizedLanguageName(b.code, uiLocale),
+      uiLocale,
+    ),
   );
   return [...head, ...rest];
 }

@@ -1,17 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 import { Check, ChevronDown, Languages } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouteLocale } from "@/i18n/use-route-locale";
-import {
-  UI_LOCALE_LABELS,
-  isUiLocale,
-  type UiLocale,
-} from "@/i18n/ui-locales";
-import { languageLabel } from "@/i18n/languages";
+import { isUiLocale, type UiLocale } from "@/i18n/ui-locales";
+import { localizedLanguageName } from "@/i18n/languages";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 
 function swapLocalePath(pathname: string, current: string, next: string) {
@@ -21,6 +17,7 @@ function swapLocalePath(pathname: string, current: string, next: string) {
 
 export function UiLocaleSwitcher() {
   const t = useTranslations("settings");
+  const locale = useLocale();
   const routeLocale = useRouteLocale();
   const pathname = usePathname();
   const router = useRouter();
@@ -36,7 +33,7 @@ export function UiLocaleSwitcher() {
   const active: UiLocale = isUiLocale(routeLocale) ? routeLocale : preferred;
 
   function labelFor(code: string) {
-    return languageLabel(code, "zh") || UI_LOCALE_LABELS[code] || code;
+    return localizedLanguageName(code, locale);
   }
 
   useEffect(() => {
@@ -58,11 +55,11 @@ export function UiLocaleSwitcher() {
     };
   }, []);
 
-  async function onSelect(locale: UiLocale) {
+  async function onSelect(nextLocale: UiLocale) {
     setOpen(false);
     try {
-      await applyLocale(locale);
-      router.push(swapLocalePath(pathname, routeLocale, locale));
+      await applyLocale(nextLocale);
+      router.push(swapLocalePath(pathname, routeLocale, nextLocale));
       setToast(t("applySuccess"));
       window.setTimeout(() => setToast(null), 2200);
     } catch (err) {

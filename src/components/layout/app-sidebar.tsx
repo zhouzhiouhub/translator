@@ -27,7 +27,7 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col border-r border-border bg-sidebar/90 backdrop-blur">
+    <aside className="flex h-full w-[220px] shrink-0 flex-col overflow-y-auto border-r border-border bg-sidebar/90 backdrop-blur">
       <div className="flex items-center gap-2 border-b border-border px-4 py-5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -92,7 +92,6 @@ export function AppSidebar() {
       </nav>
 
       <div className="border-t border-border p-3">
-        <p className="mb-2 text-[11px] uppercase tracking-wide text-muted">UI</p>
         <div className="flex gap-1">
           {locales.map((code) => (
             <Link

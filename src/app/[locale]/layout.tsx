@@ -39,9 +39,11 @@ export default async function LocaleLayout({
       <body className="antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
-            <div className="flex min-h-screen">
+            <div className="flex h-dvh overflow-hidden">
               <AppSidebar />
-              <main className="flex-1 overflow-auto p-6 md:p-8">{children}</main>
+              <main className="min-h-0 flex-1 overflow-y-auto p-6 md:p-8">
+                {children}
+              </main>
             </div>
           </Providers>
         </NextIntlClientProvider>

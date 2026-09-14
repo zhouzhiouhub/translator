@@ -36,7 +36,7 @@ export const PROVIDER_OPTIONS: { id: AiProviderId; label: string }[] = [
 export const DEFAULT_MODELS: Record<AiProviderId, string> = {
   openai: "gpt-4o",
   claude: "claude-sonnet-4-20250514",
-  gemini: "gemini-2.0-flash",
+  gemini: "gemini-2.5-flash",
   deepseek: "deepseek-chat",
   compatible: "",
 };

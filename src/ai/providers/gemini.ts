@@ -7,28 +7,41 @@ export class GeminiProvider implements AIProvider {
   constructor(private readonly config: AIConfig) {}
 
   private endpoint(method: "generateContent") {
-    const model = encodeURIComponent(this.config.model);
-    return `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}?key=${encodeURIComponent(this.config.apiKey)}`;
+    const model = encodeURIComponent(this.config.model.trim());
+    // Prefer header for key (avoids leaking key into URL / console network logs)
+    return `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}`;
+  }
+
+  private headers() {
+    return {
+      "Content-Type": "application/json",
+      "x-goog-api-key": this.config.apiKey.trim(),
+    };
   }
 
   async testConnection(): Promise<boolean> {
     const res = await fetch(this.endpoint("generateContent"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.headers(),
       body: JSON.stringify({
         contents: [{ parts: [{ text: "ping" }] }],
         generationConfig: { maxOutputTokens: 8 },
       }),
     });
-    return res.ok;
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(formatGeminiError(res.status, body, this.config.model));
+    }
+    return true;
   }
 
   async translate(params: TranslateParams): Promise<TranslateResult> {
     const started = Date.now();
-    const styleHint = params.style && params.style !== "default" ? ` Style: ${params.style}.` : "";
+    const styleHint =
+      params.style && params.style !== "default" ? ` Style: ${params.style}.` : "";
     const res = await fetch(this.endpoint("generateContent"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.headers(),
       body: JSON.stringify({
         contents: [
           {
@@ -44,7 +57,7 @@ export class GeminiProvider implements AIProvider {
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(`Gemini error ${res.status}: ${body.slice(0, 200)}`);
+      throw new Error(formatGeminiError(res.status, body, this.config.model));
     }
 
     const data = (await res.json()) as {
@@ -59,4 +72,15 @@ export class GeminiProvider implements AIProvider {
       durationMs: Date.now() - started,
     };
   }
+}
+
+function formatGeminiError(status: number, body: string, model: string): string {
+  if (status === 404) {
+    return `模型不可用（404）：${model}。请改用 gemini-2.5-flash 或 gemini-2.5-flash-lite（gemini-2.0-flash 已下线）`;
+  }
+  if (status === 400 || status === 401 || status === 403) {
+    return `Gemini 鉴权/请求失败（${status}）。请确认 API Key 来自 Google AI Studio，且已开通 Gemini API。`;
+  }
+  const snippet = body.replace(/\s+/g, " ").slice(0, 160);
+  return `Gemini error ${status}${snippet ? `: ${snippet}` : ""}`;
 }

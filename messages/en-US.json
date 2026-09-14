@@ -106,6 +106,25 @@
     "title": "Help",
     "placeholder": "Full help docs arrive in a later phase. Configure AI first, then try the Translation Agent."
   },
+  "history": {
+    "title": "Translation history",
+    "subtitle": "Stored in this browser · up to 100 entries",
+    "searchPlaceholder": "Search source or translation…",
+    "filterAll": "All languages",
+    "empty": "No translations yet. They will appear here after you translate.",
+    "emptyFiltered": "No matching entries",
+    "source": "Source",
+    "translation": "Translation",
+    "sourceAuto": "Auto-detect",
+    "restore": "Restore to translator",
+    "copyTranslation": "Copy translation",
+    "delete": "Delete",
+    "clearAll": "Clear all",
+    "clearConfirmTitle": "Clear all history?",
+    "clearConfirmBody": "This permanently deletes every saved translation on this device.",
+    "copied": "Translation copied",
+    "cleared": "History cleared"
+  },
   "errors": {
     "generic": "Something went wrong. Please try again.",
     "rateLimited": "Too many requests. Please try again later.",

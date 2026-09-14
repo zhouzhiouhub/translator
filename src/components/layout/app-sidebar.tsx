@@ -16,7 +16,7 @@ import { locales, localeLabels, type AppLocale } from "@/i18n/config";
 const navItems = [
   { key: "translator", href: "", icon: Languages, phase: 1 },
   { key: "aiConfig", href: "/settings/ai", icon: Bot, phase: 1 },
-  { key: "history", href: "/history", icon: History, phase: 2 },
+  { key: "history", href: "/history", icon: History, phase: 1 },
   { key: "help", href: "/help", icon: HelpCircle, phase: 1 },
   { key: "settings", href: "/settings", icon: Settings, phase: 2 },
 ] as const;

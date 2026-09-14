@@ -106,6 +106,25 @@
     "title": "使用帮助",
     "placeholder": "帮助文档将在后续版本完善。请先配置 AI，再体验 Translation Agent。"
   },
+  "history": {
+    "title": "翻译历史",
+    "subtitle": "保存在本机浏览器，最多 100 条",
+    "searchPlaceholder": "搜索原文或译文…",
+    "filterAll": "全部语言",
+    "empty": "还没有翻译记录。完成一次翻译后会出现在这里。",
+    "emptyFiltered": "没有匹配的记录",
+    "source": "原文",
+    "translation": "译文",
+    "sourceAuto": "自动检测",
+    "restore": "回填到翻译官",
+    "copyTranslation": "复制译文",
+    "delete": "删除",
+    "clearAll": "清空全部",
+    "clearConfirmTitle": "清空翻译历史？",
+    "clearConfirmBody": "将删除本机保存的全部翻译记录，此操作不可撤销。",
+    "copied": "已复制译文",
+    "cleared": "已清空历史"
+  },
   "errors": {
     "generic": "出了点问题，请稍后重试",
     "rateLimited": "请求过于频繁，请稍后再试",

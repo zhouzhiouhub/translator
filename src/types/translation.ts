@@ -39,6 +39,18 @@ export interface TranslateResult {
   durationMs: number;
 }
 
+export interface HistoryEntry {
+  id: string;
+  createdAt: number;
+  sourceText: string;
+  translatedText: string;
+  sourceLanguage?: string;
+  targetLanguage: string;
+  style?: TranslationStyle;
+  model?: string;
+  durationMs: number;
+}
+
 export interface Translator {
   translate(input: TranslateInput): Promise<TranslateResult>;
 }

@@ -12,6 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useAppStore } from "@/stores/app";
+import { useHistoryStore } from "@/stores/history";
 import type { TranslationStyle } from "@/types/translation";
 
 const TARGET_LANGS = [
@@ -62,6 +63,7 @@ export function TranslatorPanel() {
     maxChars,
     hydrateAiConfig,
   } = useAppStore();
+  const addEntry = useHistoryStore((s) => s.addEntry);
 
   useEffect(() => {
     void hydrateAiConfig();
@@ -75,7 +77,18 @@ export function TranslatorPanel() {
         style,
         aiConfig,
       }),
-    onSuccess: (data) => setResult(data),
+    onSuccess: (data) => {
+      setResult(data);
+      addEntry({
+        sourceText: inputText,
+        translatedText: data.text,
+        sourceLanguage: data.detectedSourceLanguage,
+        targetLanguage,
+        style: data.style ?? style,
+        model: data.model,
+        durationMs: data.durationMs,
+      });
+    },
     onError: (err: Error) => {
       if (err.message === "AI_NOT_CONFIGURED") {
         setGateOpen(true);

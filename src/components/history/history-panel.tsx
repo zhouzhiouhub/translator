@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { PageContainer } from "@/components/layout/page-container";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
 import type { HistoryEntry, TranslationStyle } from "@/types/translation";
@@ -128,7 +129,7 @@ export function HistoryPanel() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+    <PageContainer>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-brand-ink">
@@ -282,7 +283,7 @@ export function HistoryPanel() {
           {toast}
         </div>
       ) : null}
-    </div>
+    </PageContainer>
   );
 }
 

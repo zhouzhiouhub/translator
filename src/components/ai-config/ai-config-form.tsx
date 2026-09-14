@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { PageContainer } from "@/components/layout/page-container";
 import { maskApiKey } from "@/lib/security/ai-config-storage";
 import { useAppStore } from "@/stores/app";
 import type { AiProviderId } from "@/types/translation";
@@ -160,7 +161,7 @@ export function AiConfigForm() {
     messageTone === "error" || aiConfig?.lastTestOk === false;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <PageContainer>
       <header>
         <h1 className="text-2xl font-semibold text-brand-ink">{t("title")}</h1>
         <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
@@ -314,7 +315,7 @@ export function AiConfigForm() {
         <h3 className="text-sm font-semibold">{t("compareAi")}</h3>
         <p className="mt-1 text-xs text-muted">{t("compareAiDesc")}</p>
       </section>
-    </div>
+    </PageContainer>
   );
 }
 

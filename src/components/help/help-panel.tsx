@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRouteLocale } from "@/i18n/use-route-locale";
+import { PageContainer } from "@/components/layout/page-container";
 
 const STEP_KEYS = ["1", "2", "3", "4", "5"] as const;
 const TIP_KEYS = ["1", "2", "3", "4"] as const;
@@ -15,7 +16,7 @@ export function HelpPanel() {
   const routeLocale = useRouteLocale();
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <PageContainer>
       <header>
         <h1 className="text-2xl font-semibold text-brand-ink">{t("title")}</h1>
         <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
@@ -104,7 +105,7 @@ export function HelpPanel() {
           ))}
         </dl>
       </section>
-    </div>
+    </PageContainer>
   );
 }
 

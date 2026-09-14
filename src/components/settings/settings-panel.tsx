@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Bot, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { PageContainer } from "@/components/layout/page-container";
 import { useAppStore } from "@/stores/app";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
@@ -92,7 +93,7 @@ export function SettingsPanel() {
           : t("statusNeedGenerate");
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <PageContainer>
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {t("title")}
@@ -192,6 +193,6 @@ export function SettingsPanel() {
           {toast}
         </div>
       ) : null}
-    </div>
+    </PageContainer>
   );
 }

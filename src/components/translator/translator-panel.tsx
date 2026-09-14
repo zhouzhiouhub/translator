@@ -16,7 +16,7 @@ import { useHistoryStore } from "@/stores/history";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { mapTargetLangToUiLocale } from "@/i18n/ui-locales";
-import type { TranslationStyle } from "@/types/translation";
+import { PageContainer } from "@/components/layout/page-container";
 
 const TARGET_LANGS = [
   { value: "en", label: "English" },
@@ -145,7 +145,7 @@ export function TranslatorPanel() {
   const check = checkAiConfig(aiConfig);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+    <PageContainer>
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-brand-ink">
           {t("greeting")}
@@ -360,7 +360,7 @@ export function TranslatorPanel() {
           {toast}
         </div>
       ) : null}
-    </div>
+    </PageContainer>
   );
 }
 

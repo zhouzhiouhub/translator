@@ -1,42 +1,30 @@
+import { APP_LANGUAGES } from "./languages";
+
 /** Built-in message packs under messages/*.json */
 export const fixedLocales = ["zh-CN", "en-US"] as const;
 
-/** Generated packs (BYOK) — routable; SSR falls back to zh-CN until client cache loads */
-export const dynamicLocales = [
-  "ja",
-  "ko",
-  "ru",
-  "de",
-  "fr",
-  "es",
-  "pt",
-] as const;
+const catalogCodes = APP_LANGUAGES.map((l) => l.code);
 
-/** All URL locales accepted by middleware / [locale] segment */
-export const locales = [...fixedLocales, ...dynamicLocales] as const;
+/** All URL locales: built-in + full language catalog */
+export const locales = Array.from(
+  new Set<string>([...fixedLocales, ...catalogCodes]),
+) as [string, ...string[]];
 
 export type FixedLocale = (typeof fixedLocales)[number];
-export type DynamicLocale = (typeof dynamicLocales)[number];
 export type AppLocale = (typeof locales)[number];
 
 export const defaultLocale: AppLocale = "zh-CN";
 
-export const localeLabels: Record<AppLocale, string> = {
-  "zh-CN": "中文",
-  "en-US": "English",
-  ja: "日本語",
-  ko: "한국어",
-  ru: "Русский",
-  de: "Deutsch",
-  fr: "Français",
-  es: "Español",
-  pt: "Português",
-};
+export const localeLabels: Record<string, string> = Object.fromEntries([
+  ...APP_LANGUAGES.map((l) => [l.code, l.nameZh] as const),
+  ["zh-CN", "中文"],
+  ["en-US", "English"],
+]);
 
 export function isFixedLocale(locale: string): locale is FixedLocale {
   return (fixedLocales as readonly string[]).includes(locale);
 }
 
 export function isAppLocale(locale: string): locale is AppLocale {
-  return (locales as readonly string[]).includes(locale);
+  return locales.includes(locale);
 }

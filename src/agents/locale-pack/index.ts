@@ -16,22 +16,13 @@ import {
   validateAndRepairLocalePack,
 } from "@/lib/locale-pack/validate";
 import { isFixedUiLocale, type UiLocale } from "@/i18n/ui-locales";
+import { getLanguage } from "@/i18n/languages";
 
 export const SOURCE_MESSAGES = zhCN as Record<string, unknown>;
 export const REFERENCE_MESSAGES = enUS as Record<string, unknown>;
 
 /** Minimum share of leaf strings that must differ from zh-CN. */
 const MIN_COVERAGE_RATIO = 0.35;
-
-const LOCALE_LANGUAGE_NAMES: Record<string, string> = {
-  ja: "Japanese",
-  ko: "Korean",
-  ru: "Russian",
-  de: "German",
-  fr: "French",
-  es: "Spanish",
-  pt: "Portuguese",
-};
 
 export function getSourceVersionHash(): string {
   return computeSourceVersionHash(SOURCE_MESSAGES);
@@ -48,7 +39,7 @@ Rules:
 6. Output must be valid JSON.`;
 
 function languageName(locale: string): string {
-  return LOCALE_LANGUAGE_NAMES[locale] ?? locale;
+  return getLanguage(locale)?.nameEn ?? locale;
 }
 
 async function translateJsonChunk(

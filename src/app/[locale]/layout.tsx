@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { UiLocaleProvider } from "@/components/i18n/ui-locale-provider";
 import { Providers } from "@/components/providers";
-import { isAppLocale, locales } from "@/i18n/config";
+import { isAppLocale, fixedLocales } from "@/i18n/config";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -16,9 +16,12 @@ export const metadata: Metadata = {
   },
 };
 
+/** Only prebuild built-in locales; catalog languages resolve on demand. */
 export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
+  return fixedLocales.map((locale) => ({ locale }));
 }
+
+export const dynamicParams = true;
 
 export default async function LocaleLayout({
   children,

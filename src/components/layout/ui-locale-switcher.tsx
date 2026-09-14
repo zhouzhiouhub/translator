@@ -11,6 +11,7 @@ import {
   isUiLocale,
   type UiLocale,
 } from "@/i18n/ui-locales";
+import { languageLabel } from "@/i18n/languages";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 
 function swapLocalePath(pathname: string, current: string, next: string) {
@@ -33,6 +34,10 @@ export function UiLocaleSwitcher() {
   const rootRef = useRef<HTMLDivElement>(null);
 
   const active: UiLocale = isUiLocale(routeLocale) ? routeLocale : preferred;
+
+  function labelFor(code: string) {
+    return languageLabel(code, "zh") || UI_LOCALE_LABELS[code] || code;
+  }
 
   useEffect(() => {
     void refreshReadyLocales();
@@ -80,7 +85,7 @@ export function UiLocaleSwitcher() {
         className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-sm text-foreground shadow-sm transition-colors hover:bg-slate-50"
       >
         <Languages className="h-4 w-4 text-primary" />
-        <span>{UI_LOCALE_LABELS[active]}</span>
+        <span>{labelFor(active)}</span>
         <ChevronDown
           className={cn(
             "h-3.5 w-3.5 text-muted transition-transform",
@@ -108,7 +113,7 @@ export function UiLocaleSwitcher() {
                       : "text-foreground hover:bg-slate-50",
                   )}
                 >
-                  <span>{UI_LOCALE_LABELS[code]}</span>
+                  <span>{labelFor(code)}</span>
                   {selected ? <Check className="h-3.5 w-3.5" /> : null}
                 </button>
               </li>

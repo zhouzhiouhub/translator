@@ -10,13 +10,13 @@ import { PageContainer } from "@/components/layout/page-container";
 import { useAppStore } from "@/stores/app";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
-import {
-  ALL_UI_LOCALES,
-  UI_LOCALE_LABELS,
-  isFixedUiLocale,
-  type UiLocale,
-} from "@/i18n/ui-locales";
+import { isFixedUiLocale, type UiLocale } from "@/i18n/ui-locales";
+import { languagesForSelect } from "@/i18n/languages";
 import { cn } from "@/lib/utils";
+
+const GENERATE_LANGS = languagesForSelect().filter(
+  (l) => !isFixedUiLocale(l.code),
+);
 
 export function SettingsPanel() {
   const t = useTranslations("settings");
@@ -120,10 +120,9 @@ export function SettingsPanel() {
           disabled={busy}
           onChange={(e) => setSelected(e.target.value as UiLocale)}
         >
-          {ALL_UI_LOCALES.map((code) => (
-            <option key={code} value={code}>
-              {UI_LOCALE_LABELS[code]}
-              {isFixedUiLocale(code) ? ` · ${t("statusBuiltin")}` : ""}
+          {GENERATE_LANGS.map((lang) => (
+            <option key={lang.code} value={lang.code}>
+              {lang.nameZh} · {lang.nameEn}
             </option>
           ))}
         </Select>

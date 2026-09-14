@@ -7,17 +7,21 @@ import {
   SOURCE_MESSAGES,
   REFERENCE_MESSAGES,
 } from "@/agents/locale-pack";
-import { loadLocalePack } from "@/lib/locale-pack/cache";
+import {
+  LOCALE_PACK_PROMPT_VERSION,
+  loadLocalePack,
+} from "@/lib/locale-pack/cache";
 import { translationCoverage } from "@/lib/locale-pack/validate";
 import {
-  DYNAMIC_UI_LOCALES,
   FIXED_UI_LOCALES,
   isFixedUiLocale,
   isUiLocale,
   type UiLocale,
 } from "@/i18n/ui-locales";
+import { getLanguage } from "@/i18n/languages";
 
 const MIN_COVERAGE_RATIO = 0.35;
+const STORAGE_PREFIX = "kinolin.localePack.";
 
 export type UiLocaleStatus = "idle" | "generating" | "ready" | "error";
 
@@ -61,6 +65,20 @@ async function isPackReady(locale: UiLocale): Promise<boolean> {
   );
 }
 
+/** Scan localStorage for cached packs instead of probing every catalog language. */
+function listCachedLocaleCodes(sourceHash: string): string[] {
+  if (typeof window === "undefined" || !window.localStorage) return [];
+  const found = new Set<string>();
+  const needle = `.${sourceHash}.${LOCALE_PACK_PROMPT_VERSION}`;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key?.startsWith(STORAGE_PREFIX) || !key.endsWith(needle)) continue;
+    const mid = key.slice(STORAGE_PREFIX.length, key.length - needle.length);
+    if (mid) found.add(mid);
+  }
+  return [...found];
+}
+
 export const useUiLocaleStore = create<UiLocaleState>()(
   persist(
     (set, get) => ({
@@ -78,8 +96,11 @@ export const useUiLocaleStore = create<UiLocaleState>()(
 
       refreshReadyLocales: async () => {
         const ready: UiLocale[] = [...FIXED_UI_LOCALES];
-        for (const locale of DYNAMIC_UI_LOCALES) {
-          if (await isPackReady(locale)) ready.push(locale);
+        const hash = getSourceVersionHash();
+        for (const code of listCachedLocaleCodes(hash)) {
+          if (isFixedUiLocale(code)) continue;
+          if (!getLanguage(code) && !isUiLocale(code)) continue;
+          if (await isPackReady(code)) ready.push(code);
         }
         set({ readyLocales: ready });
       },
@@ -94,7 +115,6 @@ export const useUiLocaleStore = create<UiLocaleState>()(
         const hash = getSourceVersionHash();
         const cached = await loadLocalePack(preferredUiLocale, hash);
         if (!cached) {
-          // Preferred dynamic pack missing — fall back visually to route locale.
           set({ dynamicMessages: null, status: "idle" });
           return;
         }

@@ -11,19 +11,13 @@ import { Select } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/page-container";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
+import { languagesForSelect } from "@/i18n/languages";
 import type { HistoryEntry, TranslationStyle } from "@/types/translation";
 
-const TARGET_LANGS = [
-  { value: "en", label: "English" },
-  { value: "zh-CN", label: "中文" },
-  { value: "ja", label: "日本語" },
-  { value: "ko", label: "한국어" },
-  { value: "ru", label: "Русский" },
-  { value: "de", label: "Deutsch" },
-  { value: "fr", label: "Français" },
-  { value: "es", label: "Español" },
-  { value: "pt", label: "Português" },
-] as const;
+const TARGET_LANGS = languagesForSelect().map((l) => ({
+  value: l.code,
+  label: `${l.nameZh} · ${l.nameEn}`,
+}));
 
 const STYLE_KEYS = [
   "default",

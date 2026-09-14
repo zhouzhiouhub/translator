@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import {
   UI_LOCALE_LABELS,
-  isFixedUiLocale,
+  isUiLocale,
   type UiLocale,
 } from "@/i18n/ui-locales";
 import { useUiLocaleStore } from "@/stores/ui-locale";
@@ -27,14 +27,12 @@ export function UiLocaleSwitcher() {
   const readyLocales = useUiLocaleStore((s) => s.readyLocales);
   const applyLocale = useUiLocaleStore((s) => s.applyLocale);
   const refreshReadyLocales = useUiLocaleStore((s) => s.refreshReadyLocales);
-  const dynamicMessages = useUiLocaleStore((s) => s.dynamicMessages);
 
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const active: UiLocale =
-    !isFixedUiLocale(preferred) && dynamicMessages ? preferred : routeLocale;
+  const active: UiLocale = isUiLocale(routeLocale) ? routeLocale : preferred;
 
   useEffect(() => {
     void refreshReadyLocales();
@@ -58,10 +56,8 @@ export function UiLocaleSwitcher() {
   async function onSelect(locale: UiLocale) {
     setOpen(false);
     try {
-      const result = await applyLocale(locale);
-      if (result.kind === "fixed") {
-        router.push(swapLocalePath(pathname, routeLocale, result.locale));
-      }
+      await applyLocale(locale);
+      router.push(swapLocalePath(pathname, routeLocale, locale));
       setToast(t("applySuccess"));
       window.setTimeout(() => setToast(null), 2200);
     } catch (err) {

@@ -7,7 +7,7 @@ import {
 } from "next-intl";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useUiLocaleStore } from "@/stores/ui-locale";
-import { isFixedUiLocale } from "@/i18n/ui-locales";
+import { isFixedUiLocale, isUiLocale } from "@/i18n/ui-locales";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 
 function GeneratingBanner() {
@@ -68,9 +68,8 @@ function usePersistReady() {
 }
 
 /**
- * Dynamic packs override messages client-side.
- * Provider remounts via `key` so consumers always pick up new catalogs.
- * Navigation must use `useRouteLocale()` (URL), not `useLocale()`.
+ * Dynamic packs override messages client-side when the URL locale is generated.
+ * URL is the source of truth for which locale is active.
  */
 export function UiLocaleProvider({ children }: { children: ReactNode }) {
   const routeLocale = useRouteLocale();
@@ -83,12 +82,7 @@ export function UiLocaleProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!persistReady) return;
-    // URL is source of truth for built-in locales.
-    if (
-      isFixedUiLocale(routeLocale) &&
-      isFixedUiLocale(preferred) &&
-      preferred !== routeLocale
-    ) {
+    if (isUiLocale(routeLocale) && preferred !== routeLocale) {
       setPreferredUiLocale(routeLocale);
     }
   }, [persistReady, routeLocale, preferred, setPreferredUiLocale]);
@@ -96,14 +90,14 @@ export function UiLocaleProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!persistReady) return;
     void hydrateDynamicPack();
-  }, [persistReady, hydrateDynamicPack, preferred]);
+  }, [persistReady, hydrateDynamicPack, preferred, routeLocale]);
 
   const activeDynamic =
-    !isFixedUiLocale(preferred) && dynamicMessages
+    !isFixedUiLocale(routeLocale) && dynamicMessages
       ? dynamicMessages
       : null;
 
-  const providerLocale = activeDynamic ? preferred : routeLocale;
+  const providerLocale = routeLocale;
   const providerMessages = useMemo(
     () => (activeDynamic ?? routeMessages) as typeof routeMessages,
     [activeDynamic, routeMessages],

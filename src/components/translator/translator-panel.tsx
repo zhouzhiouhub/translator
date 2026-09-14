@@ -97,15 +97,13 @@ export function TranslatorPanel() {
         const uiLocale = mapTargetLangToUiLocale(targetLanguage);
         if (uiLocale) {
           void applyLocale(uiLocale)
-            .then((result) => {
-              if (result.kind === "fixed") {
-                const rest =
-                  window.location.pathname.replace(
-                    new RegExp(`^/${routeLocale}`),
-                    "",
-                  ) || "";
-                router.push(`/${result.locale}${rest}`);
-              }
+            .then(() => {
+              const rest =
+                window.location.pathname.replace(
+                  new RegExp(`^/${routeLocale}`),
+                  "",
+                ) || "";
+              router.push(`/${uiLocale}${rest}`);
             })
             .catch((err: Error) => {
               if (err.message === "LOCALE_PACK_NOT_READY") {

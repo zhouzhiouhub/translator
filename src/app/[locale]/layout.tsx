@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { UiLocaleProvider } from "@/components/i18n/ui-locale-provider";
 import { Providers } from "@/components/providers";
-import { locales, type AppLocale } from "@/i18n/config";
+import { isAppLocale, locales } from "@/i18n/config";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -28,7 +28,7 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  if (!locales.includes(locale as AppLocale)) {
+  if (!isAppLocale(locale)) {
     notFound();
   }
 

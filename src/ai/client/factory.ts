@@ -40,3 +40,10 @@ export const DEFAULT_MODELS: Record<AiProviderId, string> = {
   deepseek: "deepseek-chat",
   compatible: "",
 };
+
+/** Suggested models shown in AI config UI */
+export const MODEL_SUGGESTIONS: Partial<Record<AiProviderId, string[]>> = {
+  gemini: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"],
+  deepseek: ["deepseek-chat", "deepseek-reasoner"],
+  openai: ["gpt-4o", "gpt-4o-mini"],
+};

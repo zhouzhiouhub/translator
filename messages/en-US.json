@@ -82,6 +82,7 @@
     "savedSummary": "Current: {provider} · {model} · {key}",
     "byokNotice": "Your API key is stored only in this browser and is never uploaded to Kinolin servers. AI calls go directly from the browser to the provider (BYOK). Do not save keys on shared devices.",
     "compatiblePhishHint": "Only enter trusted API base URLs to avoid phishing.",
+    "geminiNetworkHint": "Gemini needs reachability to Google. Persistent 404 usually means network block — try DeepSeek or an OpenAI Compatible gateway.",
     "compareAi": "AI Translation Agent (BYOK)",
     "compareAiDesc": "Context, style, and upcoming UI locale packs — billed to your account",
     "modelPlaceholderOpenai": "e.g. gpt-4o",

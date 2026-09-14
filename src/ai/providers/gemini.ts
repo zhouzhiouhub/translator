@@ -1,16 +1,12 @@
 import type { AIConfig } from "@/types/translation";
 import type { AIProvider, TranslateParams, TranslateResult } from "@/ai/types";
 
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
+
 /** Google Gemini generateContent — browser BYOK. */
 export class GeminiProvider implements AIProvider {
   readonly id = "gemini";
   constructor(private readonly config: AIConfig) {}
-
-  private endpoint(method: "generateContent") {
-    const model = encodeURIComponent(this.config.model.trim());
-    // Prefer header for key (avoids leaking key into URL / console network logs)
-    return `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}`;
-  }
 
   private headers() {
     return {
@@ -19,8 +15,43 @@ export class GeminiProvider implements AIProvider {
     };
   }
 
+  private generateUrl(model: string) {
+    return `${GEMINI_BASE}/models/${encodeURIComponent(model.trim())}:generateContent`;
+  }
+
   async testConnection(): Promise<boolean> {
-    const res = await fetch(this.endpoint("generateContent"), {
+    // 1) List models — distinguishes bad key vs unreachable network vs missing model
+    const listRes = await fetch(`${GEMINI_BASE}/models?pageSize=20`, {
+      method: "GET",
+      headers: this.headers(),
+    });
+
+    if (!listRes.ok) {
+      const body = await listRes.text().catch(() => "");
+      throw new Error(formatGeminiError(listRes.status, body, this.config.model, "list"));
+    }
+
+    const list = (await listRes.json()) as {
+      models?: { name?: string }[];
+    };
+    const names = (list.models ?? [])
+      .map((m) => (m.name ?? "").replace(/^models\//, ""))
+      .filter(Boolean);
+
+    const wanted = this.config.model.trim();
+    const matched =
+      names.includes(wanted) ||
+      names.some((n) => n === wanted || n.startsWith(`${wanted}-`));
+
+    if (!matched) {
+      const sample = names.slice(0, 6).join(", ") || "(empty)";
+      throw new Error(
+        `当前 Key 可用模型中没有「${wanted}」。可试用：${sample}`,
+      );
+    }
+
+    // 2) Tiny generate to confirm write path
+    const res = await fetch(this.generateUrl(wanted), {
       method: "POST",
       headers: this.headers(),
       body: JSON.stringify({
@@ -28,18 +59,20 @@ export class GeminiProvider implements AIProvider {
         generationConfig: { maxOutputTokens: 8 },
       }),
     });
+
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(formatGeminiError(res.status, body, this.config.model));
+      throw new Error(formatGeminiError(res.status, body, wanted, "generate"));
     }
     return true;
   }
 
   async translate(params: TranslateParams): Promise<TranslateResult> {
     const started = Date.now();
+    const model = this.config.model.trim();
     const styleHint =
       params.style && params.style !== "default" ? ` Style: ${params.style}.` : "";
-    const res = await fetch(this.endpoint("generateContent"), {
+    const res = await fetch(this.generateUrl(model), {
       method: "POST",
       headers: this.headers(),
       body: JSON.stringify({
@@ -57,7 +90,7 @@ export class GeminiProvider implements AIProvider {
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(formatGeminiError(res.status, body, this.config.model));
+      throw new Error(formatGeminiError(res.status, body, model, "generate"));
     }
 
     const data = (await res.json()) as {
@@ -68,19 +101,43 @@ export class GeminiProvider implements AIProvider {
 
     return {
       text,
-      model: this.config.model,
+      model,
       durationMs: Date.now() - started,
     };
   }
 }
 
-function formatGeminiError(status: number, body: string, model: string): string {
+function formatGeminiError(
+  status: number,
+  body: string,
+  model: string,
+  phase: "list" | "generate",
+): string {
+  const snippet = body.replace(/\s+/g, " ").slice(0, 180);
+
   if (status === 404) {
-    return `模型不可用（404）：${model}。请改用 gemini-2.5-flash 或 gemini-2.5-flash-lite（gemini-2.0-flash 已下线）`;
+    return [
+      `Gemini 返回 404（${phase} / ${model}）。`,
+      "常见原因：1) 当前网络访问不了 Google Gemini（国内很常见）；",
+      "2) Key 无效或未开通 Generative Language API；",
+      "3) 模型名不对。",
+      "建议改用 DeepSeek，或 OpenAI Compatible 网关做跨区测试。",
+      snippet ? `详情：${snippet}` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
   }
+
   if (status === 400 || status === 401 || status === 403) {
-    return `Gemini 鉴权/请求失败（${status}）。请确认 API Key 来自 Google AI Studio，且已开通 Gemini API。`;
+    return [
+      `Gemini 鉴权/权限失败（${status}）。`,
+      "请到 Google AI Studio 新建 API Key，确认已启用 Gemini，",
+      "且 Key 未限制到其它域名（本机测试需允许 localhost）。",
+      snippet ? `详情：${snippet}` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
   }
-  const snippet = body.replace(/\s+/g, " ").slice(0, 160);
+
   return `Gemini error ${status}${snippet ? `: ${snippet}` : ""}`;
 }

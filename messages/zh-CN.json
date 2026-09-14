@@ -82,6 +82,7 @@
     "savedSummary": "当前：{provider} · {model} · {key}",
     "byokNotice": "你的 API Key 仅保存在本机浏览器，不会上传到 Kinolin 服务器。调用 AI 时由浏览器直接请求对应厂商 API（BYOK）。请勿在公用设备上保存 Key。",
     "compatiblePhishHint": "自定义 API 地址请仅填写可信地址，谨防钓鱼。",
+    "geminiNetworkHint": "Gemini 需能访问 Google。若持续 404，多半是网络不可达；可改用 DeepSeek 或 OpenAI Compatible 网关。",
     "compareAi": "AI Translation Agent（BYOK）",
     "compareAiDesc": "上下文、风格、后续 UI 语言包；费用走你的账户",
     "modelPlaceholderOpenai": "例如 gpt-4o",

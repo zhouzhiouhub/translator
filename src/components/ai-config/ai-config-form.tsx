@@ -225,6 +225,12 @@ export function AiConfigForm() {
             />
           </Field>
 
+          {provider === "gemini" ? (
+            <p className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-900">
+              {t("geminiNetworkHint")}
+            </p>
+          ) : null}
+
           <Field label={t("apiKey")}>
             <div className="flex gap-2">
               <Input

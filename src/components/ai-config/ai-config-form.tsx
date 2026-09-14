@@ -156,6 +156,9 @@ export function AiConfigForm() {
         ? t("statusConfigured")
         : t("statusSavedNeedTest");
 
+  const showErrorHints =
+    messageTone === "error" || aiConfig?.lastTestOk === false;
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <header>
@@ -225,7 +228,7 @@ export function AiConfigForm() {
             />
           </Field>
 
-          {provider === "gemini" ? (
+          {provider === "gemini" && showErrorHints ? (
             <p className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-900">
               {t("geminiNetworkHint")}
             </p>
@@ -301,9 +304,11 @@ export function AiConfigForm() {
         </form>
       </section>
 
-      <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-900">
-        {t("byokNotice")}
-      </section>
+      {showErrorHints ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-900">
+          {t("byokNotice")}
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-border bg-card p-4">
         <h3 className="text-sm font-semibold">{t("compareAi")}</h3>

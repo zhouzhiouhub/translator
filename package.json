@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1 --port 3000",
-    "build": "opennextjs-cloudflare build",
-    "build:next": "next build",
+    "dev": "npm run sync:prompt && next dev --hostname 127.0.0.1 --port 3000",
+    "sync:prompt": "node scripts/sync-prompt.mjs",
+    "build": "npm run sync:prompt && opennextjs-cloudflare build",
+    "build:next": "npm run sync:prompt && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "tsx --test tests/**/*.test.ts",

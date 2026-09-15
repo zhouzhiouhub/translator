@@ -39,7 +39,7 @@ describe("translation quality", () => {
 
   it("uses a simple accurate prompt when custom style has empty prompt", () => {
     const prompt = defaultTranslateSystemPrompt("en", "custom", "   ");
-    assert.doesNotMatch(prompt, /Prompt\.txt/);
+    assert.match(prompt, /始终优先级/);
     assert.doesNotMatch(prompt, /business/);
     assert.match(prompt, /accurately/i);
     assert.match(prompt, /detectedSourceLanguage/);

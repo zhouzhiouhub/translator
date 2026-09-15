@@ -1,13 +1,14 @@
 import { getLanguage, languageLabel } from "@/i18n/languages";
+import { TRANSLATION_POLICY } from "@/lib/translation/prompt.generated";
 
 /**
- * Translation system prompts.
+ * Translation system prompts. The policy is generated from the root Prompt.txt
+ * during the build so browser-side BYOK requests can use the same source.
  * - style `custom` + saved prompt → user prompt only (no Prompt.txt).
  * - style `custom` + empty prompt → simple accurate translation.
- * - other styles → simple accurate + style mode (no Prompt.txt).
- * Full narrative rules remain in repo-root `Prompt.txt` for product reference.
+ * - other styles → Prompt.txt policy + simple accurate style mode.
  */
-export const TRANSLATION_PROMPT_VERSION = "simple-or-custom-v2";
+export const TRANSLATION_PROMPT_VERSION = "prompt-txt-v1";
 
 /** Full label for AI prompts — codes alone (e.g. `th`) are often ignored by models. */
 export function formatTargetLanguageForPrompt(code: string): string {
@@ -46,7 +47,9 @@ function normalizedCustomPrompt(customPrompt?: string): string | undefined {
 
 function simpleAccuratePrompt(targetLabel: string, style?: string): string {
   const mode = styleDirective(style);
-  return `You are a translator. Translate the user text into ${targetLabel} accurately.
+  return `${TRANSLATION_POLICY}
+
+You are a translator. Translate the user text into ${targetLabel} accurately.
 Preserve meaning; do not add explanations.
 ${mode}Output only the required JSON.
 
@@ -58,7 +61,9 @@ function simpleAccurateDocumentPrompt(
   style?: string,
 ): string {
   const mode = styleDirective(style);
-  return `You are a translator. Translate this document segment into ${targetLabel} accurately.
+  return `${TRANSLATION_POLICY}
+
+You are a translator. Translate this document segment into ${targetLabel} accurately.
 Preserve meaning and basic structure; do not add explanations.
 ${mode}Output ONLY the translated segment — plain text, no JSON, no preface.`;
 }
@@ -110,7 +115,9 @@ ${JSON_OUTPUT_RULE}`;
   }
 
   const mode = style === "custom" ? "" : styleDirective(style);
-  return `You are a translator. Translate the user text into ${label} accurately.
+  return `${TRANSLATION_POLICY}
+
+You are a translator. Translate the user text into ${label} accurately.
 You MUST write the translation field ONLY in the target language — never leave source-language wording unchanged.
 Do not add explanations.
 ${mode}

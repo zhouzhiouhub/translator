@@ -31,7 +31,6 @@ interface AppState {
   style: TranslationStyle;
   /** Optional user system prompt; when set, replaces Prompt.txt defaults. */
   customPrompt: string;
-  followUiToTarget: boolean;
   inputText: string;
   result: TranslateResult | null;
   aiConfig: AIConfig | null;
@@ -42,7 +41,6 @@ interface AppState {
   setTargetLanguages: (v: string[]) => void;
   setStyle: (v: TranslationStyle) => void;
   setCustomPrompt: (v: string) => void;
-  setFollowUiToTarget: (v: boolean) => void;
   setInputText: (v: string) => void;
   setResult: (v: TranslateResult | null) => void;
   hydrateAiConfig: () => Promise<void>;
@@ -58,7 +56,6 @@ export const useAppStore = create<AppState>()(
       targetLanguages: ["en"],
       style: "default",
       customPrompt: "",
-      followUiToTarget: false,
       inputText: "",
       result: null,
       aiConfig: null,
@@ -79,7 +76,6 @@ export const useAppStore = create<AppState>()(
         set({
           customPrompt: customPrompt.slice(0, MAX_CUSTOM_PROMPT_CHARS),
         }),
-      setFollowUiToTarget: (followUiToTarget) => set({ followUiToTarget }),
       setInputText: (inputText) =>
         set({ inputText: inputText.slice(0, MAX_CHARS) }),
       setResult: (result) => set({ result }),
@@ -110,7 +106,6 @@ export const useAppStore = create<AppState>()(
         targetLanguages: state.targetLanguages,
           style: state.style,
           customPrompt: state.customPrompt,
-          followUiToTarget: state.followUiToTarget,
           // never persist apiKey here — kept in dedicated storage module
       }),
       merge: (persisted, current) => {

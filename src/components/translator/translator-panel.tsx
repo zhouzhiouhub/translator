@@ -27,11 +27,8 @@ import { isAbortError } from "@/lib/abort";
 import { mapProviderError } from "@/lib/i18n/map-provider-error";
 import { useAppStore } from "@/stores/app";
 import { createBatchId, useHistoryStore } from "@/stores/history";
-import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
-import { mapTargetLangToUiLocale } from "@/i18n/ui-locales";
-import { setExplicitUiLocaleCookie } from "@/i18n/resolve-ui-locale";
 import { PageContainer } from "@/components/layout/page-container";
 import type { TranslationStyle } from "@/types/translation";
 import { TRANSLATION_STYLES } from "@/types/translation";
@@ -80,8 +77,6 @@ export function TranslatorPanel() {
     style,
     setStyle,
     customPrompt,
-    followUiToTarget,
-    setFollowUiToTarget,
     setResult,
     aiConfig,
     aiConfigured,
@@ -89,7 +84,6 @@ export function TranslatorPanel() {
     hydrateAiConfig,
   } = useAppStore();
   const addBatchEntries = useHistoryStore((s) => s.addBatchEntries);
-  const applyLocale = useUiLocaleStore((s) => s.applyLocale);
 
   useEffect(() => {
     void hydrateAiConfig();
@@ -187,29 +181,6 @@ export function TranslatorPanel() {
 
       if (completed.length > 1) {
         showToast(t("batchDone", { count: completed.length }));
-      }
-
-      if (followUiToTarget && completed.length === 1 && firstDone?.status === "done") {
-        const uiLocale = mapTargetLangToUiLocale(firstDone.targetLanguage);
-        if (uiLocale) {
-          void applyLocale(uiLocale)
-            .then(() => {
-              setExplicitUiLocaleCookie(uiLocale);
-              const rest =
-                window.location.pathname.replace(
-                  new RegExp(`^/${routeLocale}`),
-                  "",
-                ) || "";
-              router.push(`/${uiLocale}${rest}`);
-            })
-            .catch((err: Error) => {
-              if (err.message === "LOCALE_PACK_NOT_READY") {
-                setToast(t("followUiPackMissing"));
-                return;
-              }
-              setToast(err.message);
-            });
-        }
       }
     },
     onError: (err: Error) => {
@@ -368,23 +339,6 @@ export function TranslatorPanel() {
                       : null}
                   </p>
                 </div>
-                <label className="flex items-start gap-2 text-xs text-muted">
-                  <input
-                    type="checkbox"
-                    checked={followUiToTarget}
-                    onChange={(e) => setFollowUiToTarget(e.target.checked)}
-                    disabled={mutation.isPending || targetLanguages.length > 1}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    {t("followUi")}
-                    {targetLanguages.length > 1 ? (
-                      <span className="mt-0.5 block text-[11px] text-muted">
-                        {t("followUiBatchHint")}
-                      </span>
-                    ) : null}
-                  </span>
-                </label>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">

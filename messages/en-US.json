@@ -8,6 +8,9 @@
     "loading": "Loading…",
     "retry": "Retry",
     "cancelled": "Cancelled",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "navigation": "Main navigation",
     "languageSearchPlaceholder": "Search by name or code…",
     "languageSearchEmpty": "No matching languages"
   },

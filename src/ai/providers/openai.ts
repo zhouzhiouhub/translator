@@ -98,7 +98,7 @@ export class OpenAICompatibleProvider implements AIProvider {
 
   translate(params: TranslateParams) {
     if (!this.config.baseUrl) {
-      return Promise.reject(new Error("API base URL is required for Compatible provider"));
+      return Promise.reject(new Error("COMPATIBLE_BASE_URL_MISSING"));
     }
     return openAiCompatibleTranslate(this.config, params, this.config.baseUrl);
   }

@@ -10,6 +10,8 @@ describe("mapProviderError", () => {
     if (key === "providerHttp") {
       return `${values?.provider}/${values?.status}${values?.detail ?? ""}`;
     }
+    if (key === "compatibleBaseUrlMissing") return "base-url-required";
+    if (key === "providerGeneric") return "provider-generic";
     return key;
   };
 
@@ -20,8 +22,15 @@ describe("mapProviderError", () => {
     );
   });
 
-  it("passes through unknown messages", () => {
-    assert.equal(mapProviderError("random failure", t), "random failure");
+  it("localizes unknown provider messages", () => {
+    assert.equal(mapProviderError("random failure", t), "provider-generic");
+  });
+
+  it("maps a missing compatible provider URL", () => {
+    assert.equal(
+      mapProviderError("COMPATIBLE_BASE_URL_MISSING", t),
+      "base-url-required",
+    );
   });
 
   it("maps provider http", () => {

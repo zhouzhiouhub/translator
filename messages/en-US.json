@@ -143,6 +143,8 @@
     "geminiEmpty": "Gemini returned an empty translation",
     "providerHttp": "{provider} error {status}{detail}",
     "providerEmpty": "{provider} returned an empty translation",
+    "compatibleBaseUrlMissing": "Enter an API Base URL for the OpenAI Compatible provider",
+    "providerGeneric": "The AI provider returned an unexpected error. Check your configuration and try again.",
     "modelPlaceholderOpenai": "e.g. gpt-4o",
     "modelPlaceholderClaude": "e.g. claude-sonnet-4-20250514",
     "modelPlaceholderGemini": "e.g. gemini-3.5-flash-lite",

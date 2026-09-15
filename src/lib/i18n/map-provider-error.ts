@@ -46,7 +46,9 @@ export function mapProviderError(
       });
     case "PROVIDER_EMPTY":
       return t("providerEmpty", { provider: parts[0] ?? "AI" });
+    case "COMPATIBLE_BASE_URL_MISSING":
+      return t("compatibleBaseUrlMissing");
     default:
-      return message;
+      return t("providerGeneric");
   }
 }

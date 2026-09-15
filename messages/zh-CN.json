@@ -143,6 +143,8 @@
     "geminiEmpty": "Gemini 返回了空译文",
     "providerHttp": "{provider} 错误 {status}{detail}",
     "providerEmpty": "{provider} 返回了空译文",
+    "compatibleBaseUrlMissing": "请为 OpenAI Compatible Provider 填写 API 地址",
+    "providerGeneric": "AI Provider 返回了未预期的错误，请检查配置后重试",
     "modelPlaceholderOpenai": "例如 gpt-4o",
     "modelPlaceholderClaude": "例如 claude-sonnet-4-20250514",
     "modelPlaceholderGemini": "例如 gemini-3.5-flash-lite",

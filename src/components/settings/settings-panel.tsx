@@ -11,7 +11,6 @@ import { useAppStore } from "@/stores/app";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { isFixedUiLocale, type UiLocale } from "@/i18n/ui-locales";
-import { cn } from "@/lib/utils";
 
 export function SettingsPanel() {
   const t = useTranslations("settings");
@@ -78,14 +77,6 @@ export function SettingsPanel() {
 
   const busy = status === "generating";
   const needsAi = !isFixedUiLocale(selected) && !aiConfigured;
-  const statusLabel =
-    status === "generating"
-      ? t("statusGenerating")
-      : packKind === "builtin"
-        ? t("statusBuiltin")
-        : packKind === "cached"
-          ? t("statusCached")
-          : t("statusNeedGenerate");
 
   return (
     <PageContainer>
@@ -116,21 +107,6 @@ export function SettingsPanel() {
           excludeBuiltin
           onChange={(v) => setSelected(v as UiLocale)}
         />
-
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
-          <span
-            className={cn(
-              "rounded-lg px-2 py-1",
-              packKind === "builtin"
-                ? "bg-slate-100"
-                : packKind === "cached"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-amber-50 text-amber-700",
-            )}
-          >
-            {statusLabel}
-          </span>
-        </div>
 
         {needsAi ? (
           <p className="mt-3 text-sm text-amber-700">

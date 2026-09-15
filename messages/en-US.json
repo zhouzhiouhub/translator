@@ -18,6 +18,13 @@
     "name": "Kinolin Translator",
     "nameEn": "Kinolin Translator"
   },
+  "seo": {
+    "title": "AI Translator",
+    "description": "Translate text and documents with your own AI API key across many languages, with privacy in mind.",
+    "keywords": "AI translator,online translation,document translation,Kinolin",
+    "author": "Kinolin",
+    "creator": "Kinolin"
+  },
   "nav": {
     "translator": "Translator",
     "aiConfig": "AI Config",

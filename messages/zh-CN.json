@@ -18,6 +18,13 @@
     "name": "Kinolin 翻译官",
     "nameEn": "Kinolin Translator"
   },
+  "seo": {
+    "title": "AI 翻译官",
+    "description": "使用自己的 AI API Key 翻译文本和文档，支持多种语言，隐私优先。",
+    "keywords": "AI 翻译,在线翻译,文档翻译,Kinolin",
+    "author": "Kinolin",
+    "creator": "Kinolin"
+  },
   "nav": {
     "translator": "翻译官",
     "aiConfig": "配置 AI",

@@ -3,8 +3,8 @@ import { persist } from "zustand/middleware";
 import type { HistoryEntry, HistoryKind } from "@/types/translation";
 
 const MAX_ENTRIES = 100;
-/** Keep enough text for online preview without blowing localStorage. */
-const MAX_STORED_TEXT = 12_000;
+/** Match document max so history / preview keep full translations. */
+const MAX_STORED_TEXT = 100_000;
 
 type NewHistoryEntry = Omit<HistoryEntry, "id" | "createdAt" | "kind"> & {
   kind?: HistoryKind;
@@ -29,7 +29,7 @@ function createId() {
 
 function clip(text: string, max = MAX_STORED_TEXT) {
   if (text.length <= max) return text;
-  return `${text.slice(0, max)}…`;
+  return text.slice(0, max);
 }
 
 function stripFileNamePrefix(sourceText: string, fileName?: string): string {

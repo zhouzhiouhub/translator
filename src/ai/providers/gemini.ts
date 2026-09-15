@@ -88,6 +88,10 @@ export class GeminiProvider implements AIProvider {
             ],
           },
         ],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 16_384,
+        },
       }),
     });
 

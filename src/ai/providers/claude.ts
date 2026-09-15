@@ -30,7 +30,7 @@ export class ClaudeProvider implements AIProvider {
     const system =
       params.systemPrompt ??
       `You are Kinolin Translator. Translate accurately and naturally.${styleHint} Output only the translation.`;
-    const maxTokens = params.systemPrompt ? 16_384 : 4096;
+    const maxTokens = 16_384;
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {

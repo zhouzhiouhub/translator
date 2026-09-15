@@ -47,10 +47,13 @@ function styleLabelKey(style: TranslationStyle) {
     | "styleLocalized";
 }
 
-function truncate(text: string, max = 160) {
-  const trimmed = text.trim();
-  if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, max)}…`;
+/** Full text in a scrollable block — never pretend the translation ended early. */
+function HistoryText({ text }: { text: string }) {
+  return (
+    <pre className="max-h-[320px] overflow-auto rounded-xl border border-border bg-slate-50/80 p-3 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+      {text}
+    </pre>
+  );
 }
 
 function formatTime(ts: number, locale: string) {
@@ -473,17 +476,13 @@ function HistoryCard({
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <p className="mb-1 text-xs font-medium text-muted">{t("source")}</p>
-          <p className="text-sm whitespace-pre-wrap text-foreground">
-            {truncate(entry.sourceText)}
-          </p>
+          <HistoryText text={entry.sourceText} />
         </div>
         <div>
           <p className="mb-1 text-xs font-medium text-muted">
             {t("translation")}
           </p>
-          <p className="text-sm whitespace-pre-wrap text-foreground">
-            {truncate(entry.translatedText)}
-          </p>
+          <HistoryText text={entry.translatedText} />
         </div>
       </div>
 
@@ -586,17 +585,13 @@ function BatchHistoryCard({
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <p className="mb-1 text-xs font-medium text-muted">{t("source")}</p>
-          <p className="text-sm whitespace-pre-wrap text-foreground">
-            {truncate(active.sourceText)}
-          </p>
+          <HistoryText text={active.sourceText} />
         </div>
         <div>
           <p className="mb-1 text-xs font-medium text-muted">
             {t("translation")} · {langLabel(active.targetLanguage)}
           </p>
-          <p className="text-sm whitespace-pre-wrap text-foreground">
-            {truncate(active.translatedText)}
-          </p>
+          <HistoryText text={active.translatedText} />
         </div>
       </div>
 

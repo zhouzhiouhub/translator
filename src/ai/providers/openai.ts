@@ -22,7 +22,7 @@ async function openAiCompatibleTranslate(
     body: JSON.stringify({
       model: config.model,
       temperature: 0.2,
-      ...(params.systemPrompt ? { max_tokens: 16_384 } : {}),
+      max_tokens: 16_384,
       messages: [
         { role: "system", content: system },
         {

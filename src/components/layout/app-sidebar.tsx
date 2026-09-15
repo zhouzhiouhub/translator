@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -27,14 +27,18 @@ const navItems = [
 export function AppSidebar({
   mobileOpen,
   onClose,
+  menuButtonRef,
 }: {
   mobileOpen: boolean;
   onClose: () => void;
+  menuButtonRef: RefObject<HTMLButtonElement | null>;
 }) {
   const t = useTranslations("nav");
   const tCommon = useTranslations("common");
   const routeLocale = useRouteLocale();
   const pathname = usePathname();
+  const mobileAsideRef = useRef<HTMLElement>(null);
+  const wasMobileOpen = useRef(false);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -44,6 +48,53 @@ export function AppSidebar({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileOpen, onClose]);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      if (wasMobileOpen.current) {
+        menuButtonRef.current?.focus();
+      }
+      wasMobileOpen.current = false;
+      return;
+    }
+
+    wasMobileOpen.current = true;
+    const frame = window.requestAnimationFrame(() => {
+      mobileAsideRef.current?.querySelector<HTMLElement>(
+        "button, a, [tabindex]:not([tabindex='-1'])",
+      )?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [mobileOpen, menuButtonRef]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const media = window.matchMedia("(min-width: 768px)");
+    const closeOnDesktop = (event: MediaQueryListEvent) => {
+      if (event.matches) onClose();
+    };
+    media.addEventListener("change", closeOnDesktop);
+    return () => media.removeEventListener("change", closeOnDesktop);
+  }, [mobileOpen, onClose]);
+
+  function trapMobileFocus(event: React.KeyboardEvent<HTMLElement>) {
+    if (event.key !== "Tab" || !mobileAsideRef.current) return;
+    const focusable = Array.from(
+      mobileAsideRef.current.querySelectorAll<HTMLElement>(
+        "button, a, [tabindex]:not([tabindex='-1'])",
+      ),
+    ).filter((element) => !element.hasAttribute("disabled"));
+    if (focusable.length === 0) return;
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   useEffect(() => {
     onClose();
@@ -142,6 +193,7 @@ export function AppSidebar({
         />
         <aside
           id="app-mobile-sidebar"
+          ref={mobileAsideRef}
           className={cn(
             "absolute inset-y-0 left-0 flex w-[min(220px,85vw)] flex-col overflow-y-auto border-r border-border bg-sidebar shadow-xl transition-transform duration-200 ease-out",
             mobileOpen ? "translate-x-0" : "-translate-x-full",
@@ -149,6 +201,7 @@ export function AppSidebar({
           role="dialog"
           aria-modal="true"
           aria-label={tCommon("navigation")}
+          onKeyDown={trapMobileFocus}
         >
           {nav}
         </aside>

@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Menu } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -11,6 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const tCommon = useTranslations("common");
   const tBrand = useTranslations("brand");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
@@ -25,12 +32,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-dvh overflow-hidden">
-      <AppSidebar mobileOpen={mobileOpen} onClose={closeMobile} />
+      <AppSidebar
+        mobileOpen={mobileOpen}
+        onClose={closeMobile}
+        menuButtonRef={menuButtonRef}
+      />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-card/80 px-4 backdrop-blur md:justify-end md:px-8">
           <div className="flex items-center gap-2 md:hidden">
             <Button
               type="button"
+              ref={menuButtonRef}
               variant="ghost"
               size="icon"
               className="h-9 w-9"

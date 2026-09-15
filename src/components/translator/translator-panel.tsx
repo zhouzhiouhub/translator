@@ -306,10 +306,11 @@ export function TranslatorPanel() {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div className="flex min-w-[180px] flex-1 flex-col gap-3 sm:max-w-md">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted">
+                  <label htmlFor="translator-style-select" className="text-xs font-medium text-muted">
                     {t("style")}
                   </label>
                   <Select
+                    id="translator-style-select"
                     value={style}
                     onChange={(e) =>
                       setStyle(e.target.value as TranslationStyle)

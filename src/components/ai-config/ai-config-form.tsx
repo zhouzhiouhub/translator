@@ -218,8 +218,9 @@ export function AiConfigForm() {
             void onSave();
           }}
         >
-          <Field label={t("provider")}>
+          <Field label={t("provider")} htmlFor="ai-provider-select">
             <Select
+              id="ai-provider-select"
               value={provider}
               onChange={(e) => {
                 const next = e.target.value as AiProviderId;
@@ -235,8 +236,9 @@ export function AiConfigForm() {
             </Select>
           </Field>
 
-          <Field label={t("model")}>
+          <Field label={t("model")} htmlFor="ai-model-input">
             <Input
+              id="ai-model-input"
               ref={modelRef}
               value={model}
               onChange={(e) => setModel(e.target.value)}
@@ -340,14 +342,18 @@ export function AiConfigForm() {
 
 function Field({
   label,
+  htmlFor,
   children,
 }: {
   label: string;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="block">
-      <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
+      <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-medium text-muted">
+        {label}
+      </label>
       {children}
     </div>
   );

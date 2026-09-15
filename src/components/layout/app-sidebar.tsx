@@ -180,6 +180,7 @@ export function AppSidebar({
           "fixed inset-0 z-40 md:hidden",
           mobileOpen ? "pointer-events-auto" : "pointer-events-none",
         )}
+        hidden={!mobileOpen}
         aria-hidden={!mobileOpen}
       >
         <button

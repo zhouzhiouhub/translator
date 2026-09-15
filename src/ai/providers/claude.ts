@@ -1,5 +1,6 @@
 import type { AIConfig } from "@/types/translation";
 import type { AIProvider, TranslateParams, TranslateResult } from "@/ai/types";
+import { parseTranslateModelOutput } from "@/lib/translation/quality";
 
 /** Anthropic Messages API — browser BYOK (may hit CORS; Compatible proxy is fallback). */
 export class ClaudeProvider implements AIProvider {

@@ -1,5 +1,6 @@
 import type { AIConfig } from "@/types/translation";
 import type { AIProvider, TranslateParams, TranslateResult } from "@/ai/types";
+import { parseTranslateModelOutput } from "@/lib/translation/quality";
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 

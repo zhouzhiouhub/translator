@@ -1,5 +1,6 @@
 import type { AIConfig } from "@/types/translation";
 import type { AIProvider, TranslateParams, TranslateResult } from "@/ai/types";
+import { parseTranslateModelOutput } from "@/lib/translation/quality";
 
 async function openAiCompatibleTranslate(
   config: AIConfig,

@@ -4,6 +4,7 @@ import { createAIProvider } from "@/ai/client/factory";
 import type { AIConfig } from "@/types/translation";
 import type { LocaleParams, LocaleResult } from "@/ai/types";
 import { checkAiConfig } from "@/agents/translator";
+import { throwIfAborted } from "@/lib/abort";
 import {
   computeSourceVersionHash,
   LOCALE_PACK_PROMPT_VERSION,
@@ -46,13 +47,16 @@ async function translateJsonChunk(
   aiConfig: AIConfig,
   targetLocale: string,
   chunk: Record<string, unknown>,
+  signal?: AbortSignal,
 ): Promise<Record<string, unknown>> {
+  throwIfAborted(signal);
   const provider = createAIProvider(aiConfig);
   const lang = languageName(targetLocale);
   const result = await provider.translate({
     text: `Translate all string values in this JSON into ${lang} (${targetLocale}).\nReturn ONLY the translated JSON object with identical keys.\n\n${JSON.stringify(chunk)}`,
     targetLanguage: targetLocale,
     systemPrompt: LOCALE_SYSTEM_PROMPT,
+    signal,
   });
   return parseLocaleJson(result.text);
 }
@@ -63,7 +67,9 @@ async function translateJsonChunk(
 async function generateViaChunks(
   aiConfig: AIConfig,
   params: LocaleParams,
+  signal?: AbortSignal,
 ): Promise<Record<string, unknown>> {
+  throwIfAborted(signal);
   const provider = createAIProvider(aiConfig);
   if (provider.generateLocale) {
     const result = await provider.generateLocale(params);
@@ -72,11 +78,13 @@ async function generateViaChunks(
 
   const merged: Record<string, unknown> = {};
   for (const [ns, value] of Object.entries(params.sourceMessages)) {
+    throwIfAborted(signal);
     const chunk = { [ns]: value };
     const translated = await translateJsonChunk(
       aiConfig,
       params.targetLocale,
       chunk,
+      signal,
     );
     if (translated[ns] !== undefined) {
       merged[ns] = translated[ns];
@@ -95,12 +103,14 @@ export interface RunLocalePackInput {
   aiConfig?: AIConfig | null;
   /** Skip cache and force regeneration */
   force?: boolean;
+  signal?: AbortSignal;
 }
 
 export async function runLocalePackGeneration(
   input: RunLocalePackInput,
 ): Promise<LocaleResult> {
-  const { targetLocale, aiConfig, force } = input;
+  const { targetLocale, aiConfig, force, signal } = input;
+  throwIfAborted(signal);
 
   if (isFixedUiLocale(targetLocale)) {
     const messages =
@@ -144,7 +154,8 @@ export async function runLocalePackGeneration(
     promptVersion: LOCALE_PACK_PROMPT_VERSION,
   };
 
-  const raw = await generateViaChunks(aiConfig, params);
+  const raw = await generateViaChunks(aiConfig, params, signal);
+  throwIfAborted(signal);
   const repaired = validateAndRepairLocalePack(SOURCE_MESSAGES, raw);
   const coverage = translationCoverage(SOURCE_MESSAGES, repaired.messages);
 

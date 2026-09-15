@@ -7,6 +7,7 @@
     "clear": "清除",
     "loading": "加载中…",
     "retry": "重试",
+    "cancelled": "已取消",
     "languageSearchPlaceholder": "搜索语言名称或代码…",
     "languageSearchEmpty": "没有匹配的语言"
   },

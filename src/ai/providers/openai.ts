@@ -19,6 +19,7 @@ async function openAiCompatibleTranslate(
       "Content-Type": "application/json",
       Authorization: `Bearer ${config.apiKey}`,
     },
+    signal: params.signal,
     body: JSON.stringify({
       model: config.model,
       temperature: 0.2,

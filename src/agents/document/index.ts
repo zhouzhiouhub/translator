@@ -1,4 +1,5 @@
 import { checkAiConfig, runTranslation } from "@/agents/translator";
+import { throwIfAborted } from "@/lib/abort";
 import { chunkDocumentText } from "@/lib/document/chunk";
 import { parseDocumentFile } from "@/lib/document/parse";
 import type {
@@ -12,6 +13,7 @@ export interface DocumentTranslateInput {
   targetLanguage: string;
   style?: TranslationStyle;
   aiConfig?: AIConfig | null;
+  signal?: AbortSignal;
   onProgress?: (progress: DocumentTranslateProgress) => void;
 }
 
@@ -31,6 +33,7 @@ export interface BatchDocumentTranslateInput {
   targetLanguages: string[];
   style?: TranslationStyle;
   aiConfig?: AIConfig | null;
+  signal?: AbortSignal;
   onProgress?: (progress: DocumentTranslateProgress) => void;
 }
 
@@ -61,6 +64,7 @@ async function translateParsedDocument(options: {
   aiConfig: AIConfig;
   languageIndex: number;
   languageTotal: number;
+  signal?: AbortSignal;
   onProgress?: (progress: DocumentTranslateProgress) => void;
 }): Promise<DocumentTranslateResult> {
   const {
@@ -71,6 +75,7 @@ async function translateParsedDocument(options: {
     aiConfig,
     languageIndex,
     languageTotal,
+    signal,
     onProgress,
   } = options;
 
@@ -81,6 +86,7 @@ async function translateParsedDocument(options: {
   let model: string | undefined;
 
   for (let i = 0; i < chunks.length; i++) {
+    throwIfAborted(signal);
     onProgress?.({
       phase: "translating",
       current: i + 1,
@@ -102,6 +108,7 @@ async function translateParsedDocument(options: {
       style,
       aiConfig,
       systemPrompt,
+      signal,
     });
 
     translatedParts.push(result.text);
@@ -129,6 +136,7 @@ export async function runDocumentTranslation(
     targetLanguages: [input.targetLanguage],
     style: input.style,
     aiConfig: input.aiConfig,
+    signal: input.signal,
     onProgress: input.onProgress,
   });
   return batch.results[0]!;
@@ -137,6 +145,7 @@ export async function runDocumentTranslation(
 export async function runBatchDocumentTranslation(
   input: BatchDocumentTranslateInput,
 ): Promise<BatchDocumentTranslateResult> {
+  throwIfAborted(input.signal);
   const check = checkAiConfig(input.aiConfig);
   if (!check.ok || !input.aiConfig) {
     throw new Error("AI_NOT_CONFIGURED");
@@ -151,6 +160,7 @@ export async function runBatchDocumentTranslation(
 
   input.onProgress?.({ phase: "parsing", current: 0, total: 0 });
   const parsed = await parseDocumentFile(input.file);
+  throwIfAborted(input.signal);
   const chunks = chunkDocumentText(parsed.text);
   if (chunks.length === 0) {
     throw new Error("DOCUMENT_EMPTY");
@@ -160,6 +170,7 @@ export async function runBatchDocumentTranslation(
   const results: DocumentTranslateResult[] = [];
 
   for (let li = 0; li < uniqueTargets.length; li++) {
+    throwIfAborted(input.signal);
     const targetLanguage = uniqueTargets[li]!;
     const one = await translateParsedDocument({
       parsed,
@@ -169,6 +180,7 @@ export async function runBatchDocumentTranslation(
       aiConfig: input.aiConfig,
       languageIndex: li + 1,
       languageTotal: uniqueTargets.length,
+      signal: input.signal,
       onProgress: input.onProgress,
     });
     results.push(one);

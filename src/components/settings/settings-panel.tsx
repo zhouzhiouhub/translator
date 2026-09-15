@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { LanguageSelect } from "@/components/ui/language-select";
 import { PageContainer } from "@/components/layout/page-container";
+import { isAbortError } from "@/lib/abort";
 import { useAppStore } from "@/stores/app";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
@@ -14,6 +15,7 @@ import { isFixedUiLocale, type UiLocale } from "@/i18n/ui-locales";
 export function SettingsPanel() {
   const t = useTranslations("settings");
   const tGate = useTranslations("aiGate");
+  const tCommon = useTranslations("common");
   const routeLocale = useRouteLocale();
 
   const aiConfig = useAppStore((s) => s.aiConfig);
@@ -30,6 +32,7 @@ export function SettingsPanel() {
     "needGenerate",
   );
   const [toast, setToast] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     void hydrateAiConfig();
@@ -38,6 +41,12 @@ export function SettingsPanel() {
   useEffect(() => {
     void packStatusFor(selected).then(setPackKind);
   }, [selected, packStatusFor, status, readyLocales]);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   function showToast(message: string) {
     setToast(message);
@@ -54,11 +63,23 @@ export function SettingsPanel() {
       return;
     }
 
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+
     try {
-      await generatePack(selected, { aiConfig, force: packKind === "cached" });
+      await generatePack(selected, {
+        aiConfig,
+        force: packKind === "cached",
+        signal: ac.signal,
+      });
       showToast(t("generateSuccess"));
       void packStatusFor(selected).then(setPackKind);
     } catch (err) {
+      if (isAbortError(err)) {
+        showToast(tCommon("cancelled"));
+        return;
+      }
       if (err instanceof Error && err.message === "AI_NOT_CONFIGURED") {
         showToast(t("aiRequired"));
         return;
@@ -71,7 +92,13 @@ export function SettingsPanel() {
         return;
       }
       showToast(t("generateFailed"));
+    } finally {
+      if (abortRef.current === ac) abortRef.current = null;
     }
+  }
+
+  function onCancel() {
+    abortRef.current?.abort();
   }
 
   const busy = status === "generating";
@@ -112,6 +139,11 @@ export function SettingsPanel() {
         ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2">
+          {busy ? (
+            <Button type="button" variant="secondary" onClick={onCancel}>
+              {tCommon("cancel")}
+            </Button>
+          ) : null}
           <Button
             type="button"
             disabled={busy || needsAi || isFixedUiLocale(selected)}

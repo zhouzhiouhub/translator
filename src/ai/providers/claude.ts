@@ -39,6 +39,7 @@ export class ClaudeProvider implements AIProvider {
         "anthropic-version": "2023-06-01",
         "anthropic-dangerous-direct-browser-access": "true",
       },
+      signal: params.signal,
       body: JSON.stringify({
         model: this.config.model,
         max_tokens: maxTokens,

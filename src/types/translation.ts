@@ -31,6 +31,7 @@ export interface TranslateInput {
   style?: TranslationStyle;
   /** Optional override for document / specialized translation. */
   systemPrompt?: string;
+  signal?: AbortSignal;
 }
 
 export interface TranslateResult {

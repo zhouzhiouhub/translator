@@ -1,4 +1,5 @@
 import type { AIConfig, TranslateInput, TranslateResult } from "@/types/translation";
+import { throwIfAborted } from "@/lib/abort";
 import { AITranslator } from "@/translation/ai/AITranslator";
 
 export interface TranslateOrchestrationInput extends TranslateInput {
@@ -42,6 +43,7 @@ export function checkAiConfig(config?: AIConfig | null): AiConfigCheck {
 export async function runTranslation(
   input: TranslateOrchestrationInput,
 ): Promise<TranslateResult> {
+  throwIfAborted(input.signal);
   const check = checkAiConfig(input.aiConfig);
   if (!check.ok || !input.aiConfig) {
     throw new Error("AI_NOT_CONFIGURED");
@@ -57,8 +59,10 @@ export async function runBatchTranslation(input: {
   style?: TranslateInput["style"];
   sourceLanguage?: string;
   aiConfig?: AIConfig | null;
+  signal?: AbortSignal;
   onProgress?: (progress: BatchTranslateProgress) => void;
 }): Promise<BatchTranslateResult> {
+  throwIfAborted(input.signal);
   const check = checkAiConfig(input.aiConfig);
   if (!check.ok || !input.aiConfig) {
     throw new Error("AI_NOT_CONFIGURED");
@@ -75,6 +79,7 @@ export async function runBatchTranslation(input: {
   const results: BatchTranslateResultItem[] = [];
 
   for (let i = 0; i < uniqueTargets.length; i++) {
+    throwIfAborted(input.signal);
     const targetLanguage = uniqueTargets[i]!;
     input.onProgress?.({
       current: i + 1,
@@ -87,6 +92,7 @@ export async function runBatchTranslation(input: {
       style: input.style,
       sourceLanguage: input.sourceLanguage,
       aiConfig: input.aiConfig,
+      signal: input.signal,
     });
     results.push({ ...one, targetLanguage });
   }

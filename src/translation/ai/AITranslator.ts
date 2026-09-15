@@ -1,4 +1,5 @@
 import { createAIProvider } from "@/ai/client/factory";
+import { throwIfAborted } from "@/lib/abort";
 import {
   defaultTranslateSystemPrompt,
   formatTargetLanguageForPrompt,
@@ -16,6 +17,7 @@ export class AITranslator implements Translator {
   constructor(private readonly config: AIConfig) {}
 
   async translate(input: TranslateInput): Promise<TranslateResult> {
+    throwIfAborted(input.signal);
     const provider = createAIProvider(this.config);
     const targetLabel = formatTargetLanguageForPrompt(input.targetLanguage);
     const baseSystem =
@@ -28,6 +30,7 @@ export class AITranslator implements Translator {
       targetLanguage: targetLabel,
       style: input.style,
       systemPrompt: baseSystem,
+      signal: input.signal,
     });
 
     if (
@@ -42,6 +45,8 @@ export class AITranslator implements Translator {
       };
     }
 
+    throwIfAborted(input.signal);
+
     // One forced retry with an explicit “must change language” prompt
     const retry = await provider.translate({
       text: input.text,
@@ -52,6 +57,7 @@ export class AITranslator implements Translator {
         input.targetLanguage,
         input.style,
       ),
+      signal: input.signal,
     });
 
     if (looksUntranslated(input.text, retry.text, input.targetLanguage)) {

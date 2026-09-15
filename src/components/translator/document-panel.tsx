@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import {
   type BatchDocumentTranslateResult,
   type DocumentTranslateResult,
 } from "@/agents/document";
+import { isAbortError } from "@/lib/abort";
 import { acceptAttribute, translatedFileName } from "@/lib/document/detect";
 import { downloadTextFile } from "@/lib/document/export";
 import {
@@ -69,6 +70,7 @@ export function DocumentPanel({
   const [batchResult, setBatchResult] =
     useState<BatchDocumentTranslateResult | null>(null);
   const [activeLang, setActiveLang] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const {
     targetLanguages,
@@ -78,6 +80,12 @@ export function DocumentPanel({
     aiConfig,
   } = useAppStore();
   const addBatchEntries = useHistoryStore((s) => s.addBatchEntries);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   const check = checkAiConfig(aiConfig);
 
@@ -99,13 +107,20 @@ export function DocumentPanel({
     mutationFn: async () => {
       if (!file) throw new Error("DOCUMENT_NO_FILE");
       if (targetLanguages.length === 0) throw new Error("DOCUMENT_NO_TARGETS");
+      abortRef.current?.abort();
+      const ac = new AbortController();
+      abortRef.current = ac;
       return runBatchDocumentTranslation({
         file,
         targetLanguages,
         style,
         aiConfig,
+        signal: ac.signal,
         onProgress: setProgress,
       });
+    },
+    onSettled: () => {
+      abortRef.current = null;
     },
     onSuccess: (data) => {
       setBatchResult(data);
@@ -134,6 +149,10 @@ export function DocumentPanel({
     },
     onError: (err: Error) => {
       setProgress(null);
+      if (isAbortError(err)) {
+        onToast(tCommon("cancelled"));
+        return;
+      }
       if (err.message === "AI_NOT_CONFIGURED") {
         setGateOpen(true);
         return;
@@ -174,6 +193,10 @@ export function DocumentPanel({
       return;
     }
     mutation.mutate();
+  }
+
+  function onCancel() {
+    abortRef.current?.abort();
   }
 
   function onDownload(result: DocumentTranslateResult) {
@@ -325,6 +348,11 @@ export function DocumentPanel({
               <span className="max-w-[240px] text-xs text-muted">
                 {progressLabel}
               </span>
+            ) : null}
+            {mutation.isPending ? (
+              <Button variant="secondary" onClick={onCancel}>
+                {tCommon("cancel")}
+              </Button>
             ) : null}
             <Button onClick={onTranslate} disabled={mutation.isPending || !file}>
               {mutation.isPending ? tCommon("loading") : t("translate")}

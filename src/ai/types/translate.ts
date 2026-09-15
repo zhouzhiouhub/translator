@@ -6,6 +6,7 @@ export interface TranslateParams {
   targetLanguage: string;
   style?: TranslationStyle;
   systemPrompt?: string;
+  signal?: AbortSignal;
 }
 
 export interface TranslateResult {

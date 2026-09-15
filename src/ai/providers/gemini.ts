@@ -78,6 +78,7 @@ export class GeminiProvider implements AIProvider {
     const res = await fetch(this.generateUrl(model), {
       method: "POST",
       headers: this.headers(),
+      signal: params.signal,
       body: JSON.stringify({
         contents: [
           {

@@ -7,6 +7,7 @@ import {
   SOURCE_MESSAGES,
   REFERENCE_MESSAGES,
 } from "@/agents/locale-pack";
+import { isAbortError } from "@/lib/abort";
 import {
   LOCALE_PACK_PROMPT_VERSION,
   loadLocalePack,
@@ -41,7 +42,11 @@ interface UiLocaleState {
   /** Generate (and cache) only — does not switch UI. */
   generatePack: (
     locale: UiLocale,
-    options?: { aiConfig?: AIConfig | null; force?: boolean },
+    options?: {
+      aiConfig?: AIConfig | null;
+      force?: boolean;
+      signal?: AbortSignal;
+    },
   ) => Promise<void>;
   /**
    * Apply a ready UI locale. Fixed → caller should also navigate.
@@ -154,6 +159,7 @@ export const useUiLocaleStore = create<UiLocaleState>()(
             targetLocale: locale,
             aiConfig: options?.aiConfig,
             force: options?.force ?? false,
+            signal: options?.signal,
           });
           set({
             status: "idle",
@@ -162,6 +168,10 @@ export const useUiLocaleStore = create<UiLocaleState>()(
           });
           await get().refreshReadyLocales();
         } catch (err) {
+          if (isAbortError(err)) {
+            set({ status: "idle", errorMessage: null });
+            throw err;
+          }
           const message =
             err instanceof Error ? err.message : "LOCALE_PACK_FAILED";
           set({ status: "error", errorMessage: message });

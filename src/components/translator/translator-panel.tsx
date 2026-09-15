@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -23,6 +23,7 @@ import {
   downloadTextFile,
   historyDownloadFileName,
 } from "@/lib/document/export";
+import { isAbortError } from "@/lib/abort";
 import { useAppStore } from "@/stores/app";
 import { createBatchId, useHistoryStore } from "@/stores/history";
 import { useUiLocaleStore } from "@/stores/ui-locale";
@@ -63,6 +64,7 @@ export function TranslatorPanel() {
     null,
   );
   const [activeLang, setActiveLang] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const {
     inputText,
@@ -87,6 +89,12 @@ export function TranslatorPanel() {
     void hydrateAiConfig();
   }, [hydrateAiConfig]);
 
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
   function langLabel(code: string) {
     return langs.find((l) => l.value === code)?.label ?? code;
   }
@@ -102,14 +110,22 @@ export function TranslatorPanel() {
   }, [activeLang, batchResult]);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      runBatchTranslation({
+    mutationFn: () => {
+      abortRef.current?.abort();
+      const ac = new AbortController();
+      abortRef.current = ac;
+      return runBatchTranslation({
         text: inputText,
         targetLanguages,
         style,
         aiConfig,
+        signal: ac.signal,
         onProgress: setProgress,
-      }),
+      });
+    },
+    onSettled: () => {
+      abortRef.current = null;
+    },
     onSuccess: (data) => {
       setProgress(null);
       setBatchResult(data);
@@ -164,6 +180,10 @@ export function TranslatorPanel() {
     },
     onError: (err: Error) => {
       setProgress(null);
+      if (isAbortError(err)) {
+        showToast(tCommon("cancelled"));
+        return;
+      }
       if (err.message === "AI_NOT_CONFIGURED") {
         setGateOpen(true);
         return;
@@ -183,6 +203,10 @@ export function TranslatorPanel() {
   function showToast(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(null), 2800);
+  }
+
+  function onCancel() {
+    abortRef.current?.abort();
   }
 
   function onTranslate() {
@@ -328,6 +352,11 @@ export function TranslatorPanel() {
                   <span className="max-w-[220px] text-xs text-muted">
                     {progressLabel}
                   </span>
+                ) : null}
+                {mutation.isPending ? (
+                  <Button variant="secondary" onClick={onCancel}>
+                    {tCommon("cancel")}
+                  </Button>
                 ) : null}
                 <Button onClick={onTranslate} disabled={mutation.isPending}>
                   {mutation.isPending ? tCommon("loading") : t("translate")}

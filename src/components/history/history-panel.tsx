@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Copy, RotateCcw, Trash2 } from "lucide-react";
+import { Copy, Eye, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,11 @@ import { PageContainer } from "@/components/layout/page-container";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
 import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
-import type { HistoryEntry, TranslationStyle } from "@/types/translation";
+import type {
+  HistoryEntry,
+  HistoryKind,
+  TranslationStyle,
+} from "@/types/translation";
 
 const STYLE_KEYS = [
   "default",
@@ -24,6 +28,12 @@ const STYLE_KEYS = [
   "academic",
   "localized",
 ] as const;
+
+type KindFilter = "all" | HistoryKind;
+
+type HistoryGroup =
+  | { type: "single"; entry: HistoryEntry }
+  | { type: "batch"; batchId: string; entries: HistoryEntry[] };
 
 function styleLabelKey(style: TranslationStyle) {
   return `style${style.charAt(0).toUpperCase()}${style.slice(1)}` as
@@ -54,6 +64,34 @@ function formatTime(ts: number, locale: string) {
   }
 }
 
+function groupHistoryEntries(entries: HistoryEntry[]): HistoryGroup[] {
+  const groups: HistoryGroup[] = [];
+  const seenBatches = new Set<string>();
+
+  for (const entry of entries) {
+    if (entry.batchId) {
+      if (seenBatches.has(entry.batchId)) continue;
+      seenBatches.add(entry.batchId);
+      const siblings = entries
+        .filter((e) => e.batchId === entry.batchId)
+        .sort((a, b) => a.targetLanguage.localeCompare(b.targetLanguage));
+      if (siblings.length > 1) {
+        groups.push({
+          type: "batch",
+          batchId: entry.batchId,
+          entries: siblings,
+        });
+      } else {
+        groups.push({ type: "single", entry: siblings[0] ?? entry });
+      }
+      continue;
+    }
+    groups.push({ type: "single", entry });
+  }
+
+  return groups;
+}
+
 export function HistoryPanel() {
   const t = useTranslations("history");
   const tTranslator = useTranslations("translator");
@@ -63,14 +101,14 @@ export function HistoryPanel() {
   const TARGET_LANGS = useLocalizedLanguageOptions();
 
   function langLabel(code: string) {
-    return (
-      TARGET_LANGS.find((l) => l.value === code)?.label ?? code
-    );
+    return TARGET_LANGS.find((l) => l.value === code)?.label ?? code;
   }
 
   const entries = useHistoryStore((s) => s.entries);
   const removeEntry = useHistoryStore((s) => s.removeEntry);
+  const removeBatch = useHistoryStore((s) => s.removeBatch);
   const clearAll = useHistoryStore((s) => s.clearAll);
+  const clearKind = useHistoryStore((s) => s.clearKind);
 
   const setInputText = useAppStore((s) => s.setInputText);
   const setTargetLanguage = useAppStore((s) => s.setTargetLanguage);
@@ -79,22 +117,32 @@ export function HistoryPanel() {
 
   const [query, setQuery] = useState("");
   const [langFilter, setLangFilter] = useState("all");
+  const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [clearOpen, setClearOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [previewEntry, setPreviewEntry] = useState<HistoryEntry | null>(null);
+  const [batchPreview, setBatchPreview] = useState<{
+    entries: HistoryEntry[];
+    activeId: string;
+  } | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return entries.filter((entry) => {
+      if (kindFilter !== "all" && entry.kind !== kindFilter) return false;
       if (langFilter !== "all" && entry.targetLanguage !== langFilter) {
         return false;
       }
       if (!q) return true;
       return (
         entry.sourceText.toLowerCase().includes(q) ||
-        entry.translatedText.toLowerCase().includes(q)
+        entry.translatedText.toLowerCase().includes(q) ||
+        (entry.fileName?.toLowerCase().includes(q) ?? false)
       );
     });
-  }, [entries, query, langFilter]);
+  }, [entries, query, langFilter, kindFilter]);
+
+  const groups = useMemo(() => groupHistoryEntries(filtered), [filtered]);
 
   function showToast(message: string) {
     setToast(message);
@@ -102,6 +150,11 @@ export function HistoryPanel() {
   }
 
   function restore(entry: HistoryEntry) {
+    if (entry.kind === "document") {
+      showToast(t("restoreDocumentHint"));
+      router.push(`/${locale}`);
+      return;
+    }
     setInputText(entry.sourceText);
     setTargetLanguage(entry.targetLanguage);
     if (entry.style) setStyle(entry.style);
@@ -119,6 +172,12 @@ export function HistoryPanel() {
     await navigator.clipboard.writeText(text);
     showToast(t("copied"));
   }
+
+  const kindTabs: { id: KindFilter; label: string }[] = [
+    { id: "all", label: t("filterKindAll") },
+    { id: "text", label: t("filterKindText") },
+    { id: "document", label: t("filterKindDocument") },
+  ];
 
   return (
     <PageContainer>
@@ -138,6 +197,23 @@ export function HistoryPanel() {
         </Button>
       </header>
 
+      <div className="flex flex-wrap gap-2">
+        {kindTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setKindFilter(tab.id)}
+            className={
+              kindFilter === tab.id
+                ? "rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                : "rounded-xl px-3 py-1.5 text-sm text-muted hover:bg-slate-100"
+            }
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row">
         <Input
           value={query}
@@ -155,95 +231,61 @@ export function HistoryPanel() {
 
       {entries.length === 0 ? (
         <EmptyState message={t("empty")} />
-      ) : filtered.length === 0 ? (
+      ) : groups.length === 0 ? (
         <EmptyState message={t("emptyFiltered")} />
       ) : (
         <ul className="flex flex-col gap-3">
-          {filtered.map((entry) => (
-            <li
-              key={entry.id}
-              className="rounded-2xl border border-border bg-card p-4 shadow-sm"
-            >
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted">
-                <span>{formatTime(entry.createdAt, locale)}</span>
-                <span>·</span>
-                <span>
-                  {entry.sourceLanguage
-                    ? langLabel(entry.sourceLanguage)
-                    : t("sourceAuto")}
-                  {" → "}
-                  {langLabel(entry.targetLanguage)}
-                </span>
-                {entry.style ? (
-                  <>
-                    <span>·</span>
-                    <span>
-                      {STYLE_KEYS.includes(
-                        entry.style as (typeof STYLE_KEYS)[number],
-                      )
-                        ? tTranslator(styleLabelKey(entry.style))
-                        : entry.style}
-                    </span>
-                  </>
-                ) : null}
-                {entry.model ? (
-                  <>
-                    <span>·</span>
-                    <span>{entry.model}</span>
-                  </>
-                ) : null}
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <div>
-                  <p className="mb-1 text-xs font-medium text-muted">
-                    {t("source")}
-                  </p>
-                  <p className="text-sm whitespace-pre-wrap text-foreground">
-                    {truncate(entry.sourceText)}
-                  </p>
-                </div>
-                <div>
-                  <p className="mb-1 text-xs font-medium text-muted">
-                    {t("translation")}
-                  </p>
-                  <p className="text-sm whitespace-pre-wrap text-foreground">
-                    {truncate(entry.translatedText)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => restore(entry)}>
-                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                  {t("restore")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void copyText(entry.translatedText)}
-                >
-                  <Copy className="mr-1.5 h-3.5 w-3.5" />
-                  {t("copyTranslation")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => removeEntry(entry.id)}
-                >
-                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                  {t("delete")}
-                </Button>
-              </div>
-            </li>
-          ))}
+          {groups.map((group) =>
+            group.type === "single" ? (
+              <li key={group.entry.id}>
+                <HistoryCard
+                  entry={group.entry}
+                  langLabel={langLabel}
+                  locale={locale}
+                  onRestore={() => restore(group.entry)}
+                  onCopy={() => void copyText(group.entry.translatedText)}
+                  onPreview={() => setPreviewEntry(group.entry)}
+                  onDelete={() => removeEntry(group.entry.id)}
+                  t={t}
+                  tTranslator={tTranslator}
+                />
+              </li>
+            ) : (
+              <li key={group.batchId}>
+                <BatchHistoryCard
+                  entries={group.entries}
+                  langLabel={langLabel}
+                  locale={locale}
+                  onPreviewLang={(entry) =>
+                    setBatchPreview({
+                      entries: group.entries,
+                      activeId: entry.id,
+                    })
+                  }
+                  onCopy={(entry) => void copyText(entry.translatedText)}
+                  onDeleteBatch={() => removeBatch(group.batchId)}
+                  t={t}
+                  tTranslator={tTranslator}
+                />
+              </li>
+            ),
+          )}
         </ul>
       )}
 
       <Dialog
         open={clearOpen}
         onClose={() => setClearOpen(false)}
-        title={t("clearConfirmTitle")}
+        title={
+          kindFilter === "all"
+            ? t("clearConfirmTitle")
+            : t("clearKindConfirmTitle", {
+                kind:
+                  kindFilter === "text"
+                    ? t("filterKindText")
+                    : t("filterKindDocument"),
+              })
+        }
         footer={
           <>
             <Button variant="secondary" onClick={() => setClearOpen(false)}>
@@ -251,7 +293,8 @@ export function HistoryPanel() {
             </Button>
             <Button
               onClick={() => {
-                clearAll();
+                if (kindFilter === "all") clearAll();
+                else clearKind(kindFilter);
                 setClearOpen(false);
                 showToast(t("cleared"));
               }}
@@ -261,7 +304,103 @@ export function HistoryPanel() {
           </>
         }
       >
-        <p>{t("clearConfirmBody")}</p>
+        <p>
+          {kindFilter === "all"
+            ? t("clearConfirmBody")
+            : t("clearKindConfirmBody", {
+                kind:
+                  kindFilter === "text"
+                    ? t("filterKindText")
+                    : t("filterKindDocument"),
+              })}
+        </p>
+      </Dialog>
+
+      <Dialog
+        open={!!previewEntry}
+        onClose={() => setPreviewEntry(null)}
+        title={t("previewTitle")}
+        className="max-w-3xl"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPreviewEntry(null)}>
+              {tCommon("cancel")}
+            </Button>
+            {previewEntry ? (
+              <Button onClick={() => void copyText(previewEntry.translatedText)}>
+                {t("copyTranslation")}
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        {previewEntry ? (
+          <pre className="max-h-[55vh] overflow-auto rounded-xl border border-border bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+            {previewEntry.translatedText}
+          </pre>
+        ) : null}
+      </Dialog>
+
+      <Dialog
+        open={!!batchPreview}
+        onClose={() => setBatchPreview(null)}
+        title={t("previewTitle")}
+        className="max-w-3xl"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setBatchPreview(null)}>
+              {tCommon("cancel")}
+            </Button>
+            {batchPreview ? (
+              <Button
+                onClick={() => {
+                  const active =
+                    batchPreview.entries.find(
+                      (e) => e.id === batchPreview.activeId,
+                    ) ?? batchPreview.entries[0];
+                  if (active) void copyText(active.translatedText);
+                }}
+              >
+                {t("copyTranslation")}
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        {batchPreview ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {batchPreview.entries.map((entry) => {
+                const selected = entry.id === batchPreview.activeId;
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() =>
+                      setBatchPreview({
+                        entries: batchPreview.entries,
+                        activeId: entry.id,
+                      })
+                    }
+                    className={
+                      selected
+                        ? "rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                        : "rounded-lg border border-border px-2.5 py-1 text-xs text-muted hover:bg-slate-50"
+                    }
+                  >
+                    {langLabel(entry.targetLanguage)}
+                  </button>
+                );
+              })}
+            </div>
+            <pre className="max-h-[55vh] overflow-auto rounded-xl border border-border bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+              {(
+                batchPreview.entries.find((e) => e.id === batchPreview.activeId) ??
+                batchPreview.entries[0]
+              )?.translatedText}
+            </pre>
+          </div>
+        ) : null}
       </Dialog>
 
       {toast ? (
@@ -270,6 +409,232 @@ export function HistoryPanel() {
         </div>
       ) : null}
     </PageContainer>
+  );
+}
+
+function HistoryCard({
+  entry,
+  langLabel,
+  locale,
+  onRestore,
+  onCopy,
+  onPreview,
+  onDelete,
+  t,
+  tTranslator,
+}: {
+  entry: HistoryEntry;
+  langLabel: (code: string) => string;
+  locale: string;
+  onRestore: () => void;
+  onCopy: () => void;
+  onPreview: () => void;
+  onDelete: () => void;
+  t: ReturnType<typeof useTranslations<"history">>;
+  tTranslator: ReturnType<typeof useTranslations<"translator">>;
+}) {
+  return (
+    <article className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted">
+        <KindBadge kind={entry.kind} t={t} />
+        <span>{formatTime(entry.createdAt, locale)}</span>
+        <span>·</span>
+        <span>
+          {entry.sourceLanguage
+            ? langLabel(entry.sourceLanguage)
+            : t("sourceAuto")}
+          {" → "}
+          {langLabel(entry.targetLanguage)}
+        </span>
+        {entry.fileName ? (
+          <>
+            <span>·</span>
+            <span className="truncate">{entry.fileName}</span>
+          </>
+        ) : null}
+        {entry.style ? (
+          <>
+            <span>·</span>
+            <span>
+              {STYLE_KEYS.includes(entry.style as (typeof STYLE_KEYS)[number])
+                ? tTranslator(styleLabelKey(entry.style))
+                : entry.style}
+            </span>
+          </>
+        ) : null}
+        {entry.model ? (
+          <>
+            <span>·</span>
+            <span>{entry.model}</span>
+          </>
+        ) : null}
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div>
+          <p className="mb-1 text-xs font-medium text-muted">{t("source")}</p>
+          <p className="text-sm whitespace-pre-wrap text-foreground">
+            {truncate(entry.sourceText)}
+          </p>
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-medium text-muted">
+            {t("translation")}
+          </p>
+          <p className="text-sm whitespace-pre-wrap text-foreground">
+            {truncate(entry.translatedText)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {entry.kind === "text" ? (
+          <Button size="sm" onClick={onRestore}>
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            {t("restore")}
+          </Button>
+        ) : null}
+        <Button size="sm" variant="secondary" onClick={onPreview}>
+          <Eye className="mr-1.5 h-3.5 w-3.5" />
+          {t("preview")}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={onCopy}>
+          <Copy className="mr-1.5 h-3.5 w-3.5" />
+          {t("copyTranslation")}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={onDelete}>
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+          {t("delete")}
+        </Button>
+      </div>
+    </article>
+  );
+}
+
+function BatchHistoryCard({
+  entries,
+  langLabel,
+  locale,
+  onPreviewLang,
+  onCopy,
+  onDeleteBatch,
+  t,
+  tTranslator,
+}: {
+  entries: HistoryEntry[];
+  langLabel: (code: string) => string;
+  locale: string;
+  onPreviewLang: (entry: HistoryEntry) => void;
+  onCopy: (entry: HistoryEntry) => void;
+  onDeleteBatch: () => void;
+  t: ReturnType<typeof useTranslations<"history">>;
+  tTranslator: ReturnType<typeof useTranslations<"translator">>;
+}) {
+  const [activeId, setActiveId] = useState(entries[0]?.id ?? "");
+  const active =
+    entries.find((e) => e.id === activeId) ?? entries[0] ?? null;
+  if (!active) return null;
+
+  const first = entries[0]!;
+
+  return (
+    <article className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted">
+        <KindBadge kind={first.kind} t={t} />
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+          {t("batchBadge", { count: entries.length })}
+        </span>
+        <span>{formatTime(first.createdAt, locale)}</span>
+        {first.fileName ? (
+          <>
+            <span>·</span>
+            <span className="truncate">{first.fileName}</span>
+          </>
+        ) : null}
+        {first.style ? (
+          <>
+            <span>·</span>
+            <span>
+              {STYLE_KEYS.includes(first.style as (typeof STYLE_KEYS)[number])
+                ? tTranslator(styleLabelKey(first.style))
+                : first.style}
+            </span>
+          </>
+        ) : null}
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-2">
+        {entries.map((entry) => {
+          const selected = entry.id === active.id;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => setActiveId(entry.id)}
+              className={
+                selected
+                  ? "rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                  : "rounded-xl border border-border bg-white px-3 py-1.5 text-sm text-muted hover:bg-slate-50"
+              }
+            >
+              {langLabel(entry.targetLanguage)}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div>
+          <p className="mb-1 text-xs font-medium text-muted">{t("source")}</p>
+          <p className="text-sm whitespace-pre-wrap text-foreground">
+            {truncate(active.sourceText)}
+          </p>
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-medium text-muted">
+            {t("translation")} · {langLabel(active.targetLanguage)}
+          </p>
+          <p className="text-sm whitespace-pre-wrap text-foreground">
+            {truncate(active.translatedText)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button size="sm" variant="secondary" onClick={() => onPreviewLang(active)}>
+          <Eye className="mr-1.5 h-3.5 w-3.5" />
+          {t("preview")}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => onCopy(active)}>
+          <Copy className="mr-1.5 h-3.5 w-3.5" />
+          {t("copyTranslation")}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={onDeleteBatch}>
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+          {t("deleteBatch")}
+        </Button>
+      </div>
+    </article>
+  );
+}
+
+function KindBadge({
+  kind,
+  t,
+}: {
+  kind: HistoryKind;
+  t: ReturnType<typeof useTranslations<"history">>;
+}) {
+  return (
+    <span
+      className={
+        kind === "document"
+          ? "rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-warning"
+          : "rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700"
+      }
+    >
+      {kind === "document" ? t("kindDocument") : t("kindText")}
+    </span>
   );
 }
 

@@ -15,6 +15,8 @@ type LanguageSelectProps = {
   className?: string;
   /** Exclude built-in zh-CN / en-US (settings pack generation). */
   excludeBuiltin?: boolean;
+  /** Hide these language codes from the list (already selected targets). */
+  excludeValues?: string[];
   /** Prepend an “all languages” row (history filter). */
   allOptionLabel?: string;
   placeholder?: string;
@@ -27,6 +29,7 @@ export function LanguageSelect({
   disabled,
   className,
   excludeBuiltin = false,
+  excludeValues,
   allOptionLabel,
   placeholder,
 }: LanguageSelectProps) {
@@ -34,9 +37,13 @@ export function LanguageSelect({
   const langs = useLocalizedLanguageOptions({ excludeBuiltin });
 
   const options = useMemo<SearchableSelectOption[]>(() => {
-    if (!allOptionLabel) return langs;
-    return [{ value: "all", label: allOptionLabel }, ...langs];
-  }, [allOptionLabel, langs]);
+    const excluded = new Set(excludeValues ?? []);
+    let list = langs.filter((l) => !excluded.has(l.value) || l.value === value);
+    if (allOptionLabel) {
+      list = [{ value: "all", label: allOptionLabel }, ...list];
+    }
+    return list;
+  }, [allOptionLabel, excludeValues, langs, value]);
 
   return (
     <SearchableSelect

@@ -78,6 +78,7 @@ export function TranslatorPanel() {
     onSuccess: (data) => {
       setResult(data);
       addEntry({
+        kind: "text",
         sourceText: inputText,
         translatedText: data.text,
         sourceLanguage: data.detectedSourceLanguage,

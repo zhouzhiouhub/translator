@@ -41,9 +41,13 @@ export interface TranslateResult {
   durationMs: number;
 }
 
+export type HistoryKind = "text" | "document";
+
 export interface HistoryEntry {
   id: string;
   createdAt: number;
+  /** Text vs document — used for history category filters. */
+  kind: HistoryKind;
   sourceText: string;
   translatedText: string;
   sourceLanguage?: string;
@@ -51,6 +55,10 @@ export interface HistoryEntry {
   style?: TranslationStyle;
   model?: string;
   durationMs: number;
+  /** Shared id when one source was translated into multiple targets. */
+  batchId?: string;
+  /** Original file name for document translations. */
+  fileName?: string;
 }
 
 export interface Translator {

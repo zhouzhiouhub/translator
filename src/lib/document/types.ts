@@ -16,7 +16,13 @@ export interface DocumentTranslateProgress {
   phase: "parsing" | "translating" | "done";
   current: number;
   total: number;
+  /** 1-based index of the current target language in a batch. */
+  languageIndex?: number;
+  languageTotal?: number;
+  targetLanguage?: string;
 }
+
+export const MAX_BATCH_TARGET_LANGUAGES = 5;
 
 export const SUPPORTED_EXTENSIONS = [
   ".txt",

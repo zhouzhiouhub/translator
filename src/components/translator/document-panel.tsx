@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { FileText, Upload } from "lucide-react";
+import { Eye, FileText, Upload } from "lucide-react";
 import { checkAiConfig } from "@/agents/translator";
-import { runDocumentTranslation } from "@/agents/document";
-import type { DocumentTranslateResult } from "@/agents/document";
-import { acceptAttribute } from "@/lib/document/detect";
-import { translatedFileName } from "@/lib/document/detect";
+import {
+  runBatchDocumentTranslation,
+  type BatchDocumentTranslateResult,
+  type DocumentTranslateResult,
+} from "@/agents/document";
+import { acceptAttribute, translatedFileName } from "@/lib/document/detect";
 import { downloadTextFile } from "@/lib/document/export";
 import {
   MAX_DOCUMENT_BYTES,
@@ -20,10 +22,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
-import { LanguageSelect } from "@/components/ui/language-select";
+import { MultiTargetLanguagePicker } from "@/components/translator/multi-target-language-picker";
 import { useAppStore } from "@/stores/app";
-import { useHistoryStore } from "@/stores/history";
+import { createBatchId, useHistoryStore } from "@/stores/history";
 import { useRouteLocale } from "@/i18n/use-route-locale";
+import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
 import type { TranslationStyle } from "@/types/translation";
 
 const STYLES: TranslationStyle[] = [
@@ -55,50 +58,83 @@ export function DocumentPanel({
   const routeLocale = useRouteLocale();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const langs = useLocalizedLanguageOptions();
 
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [progress, setProgress] = useState<DocumentTranslateProgress | null>(
     null,
   );
-  const [result, setResult] = useState<DocumentTranslateResult | null>(null);
+  const [batchResult, setBatchResult] =
+    useState<BatchDocumentTranslateResult | null>(null);
+  const [activeLang, setActiveLang] = useState<string | null>(null);
 
   const {
     targetLanguage,
-    setTargetLanguage,
     style,
     setStyle,
     aiConfig,
     aiConfigured,
   } = useAppStore();
-  const addEntry = useHistoryStore((s) => s.addEntry);
+  const [targetLanguages, setTargetLanguages] = useState<string[]>([
+    targetLanguage || "en",
+  ]);
+  const addBatchEntries = useHistoryStore((s) => s.addBatchEntries);
 
   const check = checkAiConfig(aiConfig);
+
+  function langLabel(code: string) {
+    return langs.find((l) => l.value === code)?.label ?? code;
+  }
+
+  const activeResult: DocumentTranslateResult | null = useMemo(() => {
+    if (!batchResult) return null;
+    const code = activeLang ?? batchResult.results[0]?.targetLanguage;
+    return (
+      batchResult.results.find((r) => r.targetLanguage === code) ??
+      batchResult.results[0] ??
+      null
+    );
+  }, [activeLang, batchResult]);
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!file) throw new Error("DOCUMENT_NO_FILE");
-      return runDocumentTranslation({
+      if (targetLanguages.length === 0) throw new Error("DOCUMENT_NO_TARGETS");
+      return runBatchDocumentTranslation({
         file,
-        targetLanguage,
+        targetLanguages,
         style,
         aiConfig,
         onProgress: setProgress,
       });
     },
     onSuccess: (data) => {
-      setResult(data);
+      setBatchResult(data);
+      setActiveLang(data.results[0]?.targetLanguage ?? null);
       setProgress(null);
-      addEntry({
-        sourceText: `[${data.parsed.fileName}] ${data.parsed.text.slice(0, 200)}`,
-        translatedText: data.text.slice(0, 500),
-        sourceLanguage: data.detectedSourceLanguage,
-        targetLanguage,
-        style: data.style ?? style,
-        model: data.model,
-        durationMs: data.durationMs,
-      });
+      const batchId = createBatchId();
+      addBatchEntries(
+        data.results.map((r) => ({
+          kind: "document" as const,
+          batchId,
+          fileName: data.parsed.fileName,
+          sourceText: `[${data.parsed.fileName}] ${data.parsed.text}`,
+          translatedText: r.text,
+          sourceLanguage: r.detectedSourceLanguage,
+          targetLanguage: r.targetLanguage,
+          style: r.style ?? style,
+          model: r.model,
+          durationMs: r.durationMs,
+        })),
+      );
+      onToast(
+        t("batchDone", {
+          count: data.results.length,
+        }),
+      );
     },
     onError: (err: Error) => {
       setProgress(null);
@@ -112,7 +148,8 @@ export function DocumentPanel({
 
   const onPickFile = useCallback(
     (next: File | null) => {
-      setResult(null);
+      setBatchResult(null);
+      setActiveLang(null);
       setProgress(null);
       if (!next) {
         setFile(null);
@@ -132,6 +169,10 @@ export function DocumentPanel({
       onToast(t("errorNoFile"));
       return;
     }
+    if (targetLanguages.length === 0) {
+      onToast(t("errorNoTargets"));
+      return;
+    }
     if (!check.ok) {
       setGateOpen(true);
       return;
@@ -139,202 +180,310 @@ export function DocumentPanel({
     mutation.mutate();
   }
 
-  function onDownload() {
-    if (!result || !file) return;
+  function onDownload(result: DocumentTranslateResult) {
+    if (!file) return;
     downloadTextFile(
-      translatedFileName(file.name, targetLanguage),
+      translatedFileName(file.name, result.targetLanguage),
       result.text,
     );
   }
 
-  const progressLabel =
-    progress?.phase === "parsing"
-      ? t("progressParsing")
-      : progress?.phase === "translating"
-        ? t("progressTranslating", {
-            current: progress.current,
-            total: progress.total,
-          })
-        : null;
+  function onDownloadAll() {
+    if (!file || !batchResult) return;
+    for (const r of batchResult.results) {
+      onDownload(r);
+    }
+  }
+
+  const progressLabel = (() => {
+    if (!progress) return null;
+    if (progress.phase === "parsing") return t("progressParsing");
+    if (progress.phase === "translating") {
+      if (progress.languageTotal && progress.languageTotal > 1) {
+        return t("progressBatchTranslating", {
+          lang: langLabel(progress.targetLanguage ?? ""),
+          languageIndex: progress.languageIndex ?? 1,
+          languageTotal: progress.languageTotal,
+          current: progress.current,
+          total: progress.total,
+        });
+      }
+      return t("progressTranslating", {
+        current: progress.current,
+        total: progress.total,
+      });
+    }
+    return null;
+  })();
 
   return (
     <>
-      <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
-        <div className="space-y-3">
-          <div
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                inputRef.current?.click();
-              }
-            }}
-            onDragOver={(e) => {
+      <div className="space-y-4">
+        <div
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-              const dropped = e.dataTransfer.files?.[0] ?? null;
-              onPickFile(dropped);
-            }}
-            onClick={() => inputRef.current?.click()}
-            className={`flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors ${
-              dragOver
-                ? "border-primary bg-primary/5"
-                : "border-border bg-slate-50/80 hover:border-primary/40"
-            }`}
-          >
-            <Upload className="mb-2 h-8 w-8 text-primary/80" aria-hidden />
-            <p className="text-sm font-medium text-brand-ink">{t("dropTitle")}</p>
-            <p className="mt-1 max-w-md text-xs leading-relaxed text-muted">
-              {t("dropHint", {
-                formats: "TXT, MD, HTML, DOCX",
-                maxSize: formatBytes(MAX_DOCUMENT_BYTES),
-                maxChars: MAX_DOCUMENT_CHARS.toLocaleString(),
-              })}
-            </p>
-            <input
-              ref={inputRef}
-              type="file"
-              accept={acceptAttribute()}
-              className="hidden"
-              onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
-            />
+              inputRef.current?.click();
+            }
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            const dropped = e.dataTransfer.files?.[0] ?? null;
+            onPickFile(dropped);
+          }}
+          onClick={() => inputRef.current?.click()}
+          className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors ${
+            dragOver
+              ? "border-primary bg-primary/5"
+              : "border-border bg-slate-50/80 hover:border-primary/40"
+          }`}
+        >
+          <Upload className="mb-2 h-8 w-8 text-primary/80" aria-hidden />
+          <p className="text-sm font-medium text-brand-ink">{t("dropTitle")}</p>
+          <p className="mt-1 max-w-md text-xs leading-relaxed text-muted">
+            {t("dropHint", {
+              formats: "TXT, MD, HTML, DOCX",
+              maxSize: formatBytes(MAX_DOCUMENT_BYTES),
+              maxChars: MAX_DOCUMENT_CHARS.toLocaleString(),
+            })}
+          </p>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={acceptAttribute()}
+            className="hidden"
+            onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+          />
+        </div>
+
+        {file ? (
+          <div className="flex items-start justify-between gap-3 rounded-xl border border-border bg-white px-3 py-2.5">
+            <div className="flex min-w-0 items-start gap-2">
+              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-brand-ink">
+                  {file.name}
+                </p>
+                <p className="text-xs text-muted">{formatBytes(file.size)}</p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPickFile(null);
+                if (inputRef.current) inputRef.current.value = "";
+              }}
+            >
+              {tCommon("clear")}
+            </Button>
+          </div>
+        ) : null}
+
+        <MultiTargetLanguagePicker
+          values={targetLanguages}
+          onChange={setTargetLanguages}
+          disabled={mutation.isPending}
+        />
+
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex min-w-[180px] flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted">
+              {tTranslator("style")}
+            </label>
+            <Select
+              value={style}
+              onChange={(e) => setStyle(e.target.value as TranslationStyle)}
+              disabled={mutation.isPending}
+            >
+              {STYLES.map((s) => (
+                <option key={s} value={s}>
+                  {tTranslator(
+                    `style${s.charAt(0).toUpperCase()}${s.slice(1)}` as
+                      | "styleDefault"
+                      | "styleNatural"
+                      | "styleCasual"
+                      | "styleBusiness"
+                      | "styleFormal"
+                      | "styleTechnical"
+                      | "styleAcademic"
+                      | "styleLocalized",
+                  )}
+                </option>
+              ))}
+            </Select>
           </div>
 
-          {file ? (
-            <div className="flex items-start justify-between gap-3 rounded-xl border border-border bg-white px-3 py-2.5">
-              <div className="flex min-w-0 items-start gap-2">
-                <FileText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-brand-ink">
-                    {file.name}
-                  </p>
-                  <p className="text-xs text-muted">{formatBytes(file.size)}</p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPickFile(null);
-                  if (inputRef.current) inputRef.current.value = "";
-                }}
-              >
-                {tCommon("clear")}
-              </Button>
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Badge tone={aiConfigured ? "success" : "warning"}>
-                {aiConfigured
-                  ? tTranslator("configured")
-                  : tTranslator("notConfigured")}
-              </Badge>
-              {progressLabel ? (
-                <span className="text-xs text-muted">{progressLabel}</span>
-              ) : null}
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={aiConfigured ? "success" : "warning"}>
+              {aiConfigured
+                ? tTranslator("configured")
+                : tTranslator("notConfigured")}
+            </Badge>
+            {progressLabel ? (
+              <span className="max-w-[240px] text-xs text-muted">
+                {progressLabel}
+              </span>
+            ) : null}
             <Button onClick={onTranslate} disabled={mutation.isPending || !file}>
               {mutation.isPending ? tCommon("loading") : t("translate")}
             </Button>
           </div>
         </div>
 
-        <aside className="flex flex-col gap-3 rounded-xl border border-border bg-slate-50/80 p-3">
-          <label className="text-xs font-medium text-muted">
-            {tTranslator("targetLanguage")}
-          </label>
-          <LanguageSelect value={targetLanguage} onChange={setTargetLanguage} />
-
-          <label className="text-xs font-medium text-muted">
-            {tTranslator("style")}
-          </label>
-          <Select
-            value={style}
-            onChange={(e) => setStyle(e.target.value as TranslationStyle)}
-          >
-            {STYLES.map((s) => (
-              <option key={s} value={s}>
-                {tTranslator(
-                  `style${s.charAt(0).toUpperCase()}${s.slice(1)}` as
-                    | "styleDefault"
-                    | "styleNatural"
-                    | "styleCasual"
-                    | "styleBusiness"
-                    | "styleFormal"
-                    | "styleTechnical"
-                    | "styleAcademic"
-                    | "styleLocalized",
-                )}
-              </option>
-            ))}
-          </Select>
-
-          <p className="mt-1 text-[11px] leading-relaxed text-muted">
-            {t("privacyNote")}
-          </p>
-        </aside>
+        <p className="text-[11px] leading-relaxed text-muted">{t("privacyNote")}</p>
       </div>
 
-      {result ? (
+      {batchResult && activeResult ? (
         <div className="mt-4 border-t border-border pt-4">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="text-sm font-semibold text-brand-ink">
                 {t("resultTitle")}
               </h3>
               <p className="mt-0.5 text-xs text-muted">
-                {t("resultMeta", {
-                  chunks: result.chunks,
-                  model: result.model ?? "—",
-                  duration: `${(result.durationMs / 1000).toFixed(1)}s`,
+                {t("batchResultMeta", {
+                  languages: batchResult.results.length,
+                  model: activeResult.model ?? "—",
+                  duration: `${(batchResult.durationMs / 1000).toFixed(1)}s`,
                 })}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setPreviewOpen(true)}
+              >
+                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                {t("previewOnline")}
+              </Button>
               <Button
                 size="sm"
                 variant="secondary"
                 onClick={async () => {
-                  await navigator.clipboard.writeText(result.text);
+                  await navigator.clipboard.writeText(activeResult.text);
                   onToast(tCommon("copy"));
                 }}
               >
                 {tCommon("copy")}
               </Button>
-              <Button size="sm" onClick={onDownload}>
+              <Button size="sm" variant="secondary" onClick={() => onDownload(activeResult)}>
                 {t("download")}
               </Button>
+              {batchResult.results.length > 1 ? (
+                <Button size="sm" onClick={onDownloadAll}>
+                  {t("downloadAll")}
+                </Button>
+              ) : null}
             </div>
           </div>
+
+          <div className="mb-3 flex flex-wrap gap-2">
+            {batchResult.results.map((r) => {
+              const selected = r.targetLanguage === activeResult.targetLanguage;
+              return (
+                <button
+                  key={r.targetLanguage}
+                  type="button"
+                  onClick={() => setActiveLang(r.targetLanguage)}
+                  className={
+                    selected
+                      ? "rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                      : "rounded-xl border border-border bg-white px-3 py-1.5 text-sm text-muted hover:bg-slate-50"
+                  }
+                >
+                  {langLabel(r.targetLanguage)}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="mb-1 text-xs text-muted">{t("previewSource")}</p>
-              <pre className="max-h-[280px] overflow-auto rounded-xl border border-border bg-slate-50 p-3 text-xs whitespace-pre-wrap">
-                {result.parsed.text}
+              <pre className="max-h-[240px] overflow-auto rounded-xl border border-border bg-slate-50 p-3 text-xs whitespace-pre-wrap text-foreground">
+                {batchResult.parsed.text}
               </pre>
             </div>
             <div>
-              <p className="mb-1 text-xs text-muted">{t("previewTarget")}</p>
-              <pre className="max-h-[280px] overflow-auto rounded-xl border border-border bg-white p-3 text-xs whitespace-pre-wrap">
-                {result.text}
+              <p className="mb-1 text-xs text-muted">
+                {t("previewTarget")} · {langLabel(activeResult.targetLanguage)}
+              </p>
+              <pre className="max-h-[240px] overflow-auto rounded-xl border border-border bg-white p-3 text-xs whitespace-pre-wrap text-foreground">
+                {activeResult.text}
               </pre>
             </div>
           </div>
-          {result.parsed.format === "docx" ? (
+          {batchResult.parsed.format === "docx" ? (
             <p className="mt-3 text-xs text-muted">{t("docxExportNote")}</p>
           ) : null}
         </div>
       ) : null}
+
+      <Dialog
+        open={previewOpen && !!activeResult}
+        onClose={() => setPreviewOpen(false)}
+        title={t("previewDialogTitle", {
+          lang: activeResult ? langLabel(activeResult.targetLanguage) : "",
+        })}
+        className="max-w-3xl"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPreviewOpen(false)}>
+              {tCommon("cancel")}
+            </Button>
+            {activeResult ? (
+              <Button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(activeResult.text);
+                  onToast(tCommon("copy"));
+                }}
+              >
+                {tCommon("copy")}
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        {batchResult && activeResult ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {batchResult.results.map((r) => {
+                const selected =
+                  r.targetLanguage === activeResult.targetLanguage;
+                return (
+                  <button
+                    key={r.targetLanguage}
+                    type="button"
+                    onClick={() => setActiveLang(r.targetLanguage)}
+                    className={
+                      selected
+                        ? "rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                        : "rounded-lg border border-border px-2.5 py-1 text-xs text-muted hover:bg-slate-50"
+                    }
+                  >
+                    {langLabel(r.targetLanguage)}
+                  </button>
+                );
+              })}
+            </div>
+            <pre className="max-h-[55vh] overflow-auto rounded-xl border border-border bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+              {activeResult.text}
+            </pre>
+          </div>
+        ) : null}
+      </Dialog>
 
       <Dialog
         open={gateOpen}
@@ -389,6 +538,10 @@ function mapDocumentError(
       return t("errorEmpty");
     case "DOCUMENT_NO_FILE":
       return t("errorNoFile");
+    case "DOCUMENT_NO_TARGETS":
+      return t("errorNoTargets");
+    case "DOCUMENT_TOO_MANY_TARGETS":
+      return t("errorTooManyTargets");
     default:
       return code;
   }

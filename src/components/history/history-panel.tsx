@@ -54,7 +54,7 @@ function styleLabelKey(style: TranslationStyle) {
 /** Full text in a scrollable block — never pretend the translation ended early. */
 function HistoryText({ text }: { text: string }) {
   return (
-    <pre className="max-h-[320px] overflow-auto rounded-xl border border-border bg-slate-50/80 p-3 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+    <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-50/80 p-3 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
       {text}
     </pre>
   );
@@ -219,7 +219,6 @@ export function HistoryPanel() {
           <h1 className="text-2xl font-semibold tracking-tight text-brand-ink">
             {t("title")}
           </h1>
-          <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
         </div>
         <Button
           variant="secondary"

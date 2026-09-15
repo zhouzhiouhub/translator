@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Bot, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageSelect } from "@/components/ui/language-select";
 import { PageContainer } from "@/components/layout/page-container";
@@ -45,7 +44,7 @@ export function SettingsPanel() {
     window.setTimeout(() => setToast(null), 2800);
   }
 
-  async function onGenerate(force = false) {
+  async function onGenerate() {
     if (isFixedUiLocale(selected)) {
       showToast(t("builtinNoGenerate"));
       return;
@@ -56,7 +55,7 @@ export function SettingsPanel() {
     }
 
     try {
-      await generatePack(selected, { aiConfig, force });
+      await generatePack(selected, { aiConfig, force: packKind === "cached" });
       showToast(t("generateSuccess"));
       void packStatusFor(selected).then(setPackKind);
     } catch (err) {
@@ -84,21 +83,13 @@ export function SettingsPanel() {
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {t("title")}
         </h1>
-        <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
       </header>
 
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <div className="mb-4 flex items-start gap-3">
-          <div className="rounded-xl bg-primary/10 p-2 text-primary">
-            <Languages className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-medium">{t("uiLanguageTitle")}</h2>
-            <p className="mt-1 text-sm text-muted">{t("uiLanguageDesc")}</p>
-          </div>
-        </div>
+        <h2 className="text-base font-medium">{t("uiLanguageTitle")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("uiLanguageDesc")}</p>
 
-        <label className="mb-1 block text-xs font-medium text-muted">
+        <label className="mt-4 mb-1 block text-xs font-medium text-muted">
           {t("uiLanguage")}
         </label>
         <LanguageSelect
@@ -120,13 +111,11 @@ export function SettingsPanel() {
           </p>
         ) : null}
 
-        <p className="mt-3 text-xs text-muted">{t("generateOnlyHint")}</p>
-
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
             type="button"
             disabled={busy || needsAi || isFixedUiLocale(selected)}
-            onClick={() => void onGenerate(packKind === "cached")}
+            onClick={() => void onGenerate()}
           >
             {busy
               ? t("statusGenerating")
@@ -139,18 +128,13 @@ export function SettingsPanel() {
 
       <Link
         href={`/${routeLocale}/settings/ai`}
-        className="flex items-start gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:bg-slate-50"
+        className="block rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:bg-slate-50"
       >
-        <div className="rounded-xl bg-primary/10 p-2 text-primary">
-          <Bot className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-base font-medium">{t("aiConfigLinkTitle")}</h2>
-          <p className="mt-1 text-sm text-muted">{t("aiConfigLinkDesc")}</p>
-          {!aiConfigured ? (
-            <p className="mt-2 text-xs text-amber-700">{tGate("requiredHint")}</p>
-          ) : null}
-        </div>
+        <h2 className="text-base font-medium">{t("aiConfigLinkTitle")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("aiConfigLinkDesc")}</p>
+        {!aiConfigured ? (
+          <p className="mt-2 text-xs text-amber-700">{tGate("requiredHint")}</p>
+        ) : null}
       </Link>
 
       {toast ? (

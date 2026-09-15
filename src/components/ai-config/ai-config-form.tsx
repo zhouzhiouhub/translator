@@ -164,7 +164,6 @@ export function AiConfigForm() {
     <PageContainer>
       <header>
         <h1 className="text-2xl font-semibold text-brand-ink">{t("title")}</h1>
-        <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
       </header>
 
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -310,11 +309,6 @@ export function AiConfigForm() {
           {t("byokNotice")}
         </section>
       ) : null}
-
-      <section className="rounded-2xl border border-border bg-card p-4">
-        <h3 className="text-sm font-semibold">{t("compareAi")}</h3>
-        <p className="mt-1 text-xs text-muted">{t("compareAiDesc")}</p>
-      </section>
     </PageContainer>
   );
 }

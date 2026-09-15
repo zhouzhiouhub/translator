@@ -14,11 +14,11 @@ import { cn } from "@/lib/utils";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 
 const navItems = [
-  { key: "translator", href: "", icon: Languages, phase: 1 },
-  { key: "aiConfig", href: "/settings/ai", icon: Bot, phase: 1 },
-  { key: "history", href: "/history", icon: History, phase: 1 },
-  { key: "help", href: "/help", icon: HelpCircle, phase: 1 },
-  { key: "settings", href: "/settings", icon: Settings, phase: 1 },
+  { key: "translator", href: "", icon: Languages },
+  { key: "aiConfig", href: "/settings/ai", icon: Bot },
+  { key: "history", href: "/history", icon: History },
+  { key: "help", href: "/help", icon: HelpCircle },
+  { key: "settings", href: "/settings", icon: Settings },
 ] as const;
 
 export function AppSidebar() {
@@ -37,17 +37,14 @@ export function AppSidebar() {
           height={36}
           className="rounded-lg"
         />
-        <div className="min-w-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/logo.svg"
-            alt="kinolin"
-            width={110}
-            height={30}
-            className="h-6 w-auto"
-          />
-          <p className="mt-0.5 truncate text-[11px] text-muted">{t("translator")}</p>
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/logo.svg"
+          alt="kinolin"
+          width={110}
+          height={30}
+          className="h-6 w-auto"
+        />
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 p-3">
@@ -61,21 +58,7 @@ export function AppSidebar() {
                 ? pathname === `/${routeLocale}/settings` ||
                   pathname === `/${routeLocale}/settings/`
                 : pathname.startsWith(href);
-          const disabled = item.phase > 1;
           const Icon = item.icon;
-
-          if (disabled) {
-            return (
-              <span
-                key={item.key}
-                className="flex cursor-not-allowed items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-muted/70"
-                title="Phase 2"
-              >
-                <Icon className="h-4 w-4" />
-                {t(item.key)}
-              </span>
-            );
-          }
 
           return (
             <Link

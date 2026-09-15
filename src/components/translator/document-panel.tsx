@@ -18,7 +18,6 @@ import {
   MAX_DOCUMENT_CHARS,
   type DocumentTranslateProgress,
 } from "@/lib/document/types";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
@@ -77,7 +76,6 @@ export function DocumentPanel({
     style,
     setStyle,
     aiConfig,
-    aiConfigured,
   } = useAppStore();
   const addBatchEntries = useHistoryStore((s) => s.addBatchEntries);
 
@@ -323,11 +321,6 @@ export function DocumentPanel({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={aiConfigured ? "success" : "warning"}>
-              {aiConfigured
-                ? tTranslator("configured")
-                : tTranslator("notConfigured")}
-            </Badge>
             {progressLabel ? (
               <span className="max-w-[240px] text-xs text-muted">
                 {progressLabel}
@@ -338,8 +331,6 @@ export function DocumentPanel({
             </Button>
           </div>
         </div>
-
-        <p className="text-[11px] leading-relaxed text-muted">{t("privacyNote")}</p>
       </div>
 
       {batchResult && activeResult ? (
@@ -387,25 +378,27 @@ export function DocumentPanel({
             </div>
           </div>
 
-          <div className="mb-3 flex flex-wrap gap-2">
-            {batchResult.results.map((r) => {
-              const selected = r.targetLanguage === activeResult.targetLanguage;
-              return (
-                <button
-                  key={r.targetLanguage}
-                  type="button"
-                  onClick={() => setActiveLang(r.targetLanguage)}
-                  className={
-                    selected
-                      ? "rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
-                      : "rounded-xl border border-border bg-white px-3 py-1.5 text-sm text-muted hover:bg-slate-50"
-                  }
-                >
-                  {langLabel(r.targetLanguage)}
-                </button>
-              );
-            })}
-          </div>
+          {batchResult.results.length > 1 ? (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {batchResult.results.map((r) => {
+                const selected = r.targetLanguage === activeResult.targetLanguage;
+                return (
+                  <button
+                    key={r.targetLanguage}
+                    type="button"
+                    onClick={() => setActiveLang(r.targetLanguage)}
+                    className={
+                      selected
+                        ? "rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                        : "rounded-xl border border-border bg-white px-3 py-1.5 text-sm text-muted hover:bg-slate-50"
+                    }
+                  >
+                    {langLabel(r.targetLanguage)}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -456,26 +449,28 @@ export function DocumentPanel({
       >
         {batchResult && activeResult ? (
           <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {batchResult.results.map((r) => {
-                const selected =
-                  r.targetLanguage === activeResult.targetLanguage;
-                return (
-                  <button
-                    key={r.targetLanguage}
-                    type="button"
-                    onClick={() => setActiveLang(r.targetLanguage)}
-                    className={
-                      selected
-                        ? "rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
-                        : "rounded-lg border border-border px-2.5 py-1 text-xs text-muted hover:bg-slate-50"
-                    }
-                  >
-                    {langLabel(r.targetLanguage)}
-                  </button>
-                );
-              })}
-            </div>
+            {batchResult.results.length > 1 ? (
+              <div className="flex flex-wrap gap-2">
+                {batchResult.results.map((r) => {
+                  const selected =
+                    r.targetLanguage === activeResult.targetLanguage;
+                  return (
+                    <button
+                      key={r.targetLanguage}
+                      type="button"
+                      onClick={() => setActiveLang(r.targetLanguage)}
+                      className={
+                        selected
+                          ? "rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                          : "rounded-lg border border-border px-2.5 py-1 text-xs text-muted hover:bg-slate-50"
+                      }
+                    >
+                      {langLabel(r.targetLanguage)}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             <pre className="max-h-[55vh] overflow-auto rounded-xl border border-border bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
               {activeResult.text}
             </pre>

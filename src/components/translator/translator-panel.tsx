@@ -219,7 +219,6 @@ export function TranslatorPanel() {
         <h1 className="text-2xl font-semibold tracking-tight text-brand-ink">
           {t("greeting")}
         </h1>
-        <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
       </header>
 
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -248,11 +247,9 @@ export function TranslatorPanel() {
               {t("tabDocument")}
             </button>
           </div>
-          {tab === "text" ? (
-            <Badge tone={aiConfigured ? "success" : "warning"}>
-              {aiConfigured ? t("configured") : t("notConfigured")}
-            </Badge>
-          ) : null}
+          <Badge tone={aiConfigured ? "success" : "warning"}>
+            {aiConfigured ? t("configured") : t("notConfigured")}
+          </Badge>
         </div>
 
         {tab === "document" ? (
@@ -465,7 +462,6 @@ export function TranslatorPanel() {
               <div className="min-h-[120px] rounded-xl border border-border bg-slate-50 p-3 text-sm whitespace-pre-wrap">
                 {inputText}
               </div>
-              <p className="mt-2 text-xs text-muted">{t("resultSource")}</p>
             </div>
             <div>
               <div className="mb-2 text-xs text-muted">
@@ -479,25 +475,6 @@ export function TranslatorPanel() {
           </div>
         </section>
       ) : null}
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {(
-          [
-            ["featureDetect", "featureDetectDesc"],
-            ["featureStyle", "featureStyleDesc"],
-            ["featureAgent", "featureAgentDesc"],
-            ["featureByok", "featureByokDesc"],
-          ] as const
-        ).map(([title, desc]) => (
-          <div
-            key={title}
-            className="rounded-2xl border border-border bg-card/80 p-4 shadow-sm"
-          >
-            <h3 className="text-sm font-semibold text-brand-ink">{t(title)}</h3>
-            <p className="mt-1 text-xs leading-relaxed text-muted">{t(desc)}</p>
-          </div>
-        ))}
-      </section>
 
       <Dialog
         open={previewOpen && !!activeResult}

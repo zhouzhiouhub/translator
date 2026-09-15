@@ -24,10 +24,6 @@ export function MultiTargetLanguagePicker({
   const remaining = langs.filter((l) => !used.has(l.value));
   const canAdd = remaining.length > 0;
 
-  function labelOf(code: string) {
-    return langs.find((l) => l.value === code)?.label ?? code;
-  }
-
   function setAt(index: number, code: string) {
     const next = [...values];
     next[index] = code;
@@ -104,12 +100,6 @@ export function MultiTargetLanguagePicker({
           <Plus className="h-5 w-5" />
         </button>
       </div>
-
-      <p className="text-[11px] leading-relaxed text-muted">
-        {t("batchHint", {
-          languages: values.map(labelOf).join(" · "),
-        })}
-      </p>
     </div>
   );
 }

@@ -111,7 +111,7 @@
   },
   "aiConfig": {
     "title": "AI Config",
-    "localOnlyHint": "Provider and model are saved in this browser. Your API key stays in this page session and is never persisted.",
+    "localOnlyHint": "Provider and model are saved in this browser. Your API key is encrypted in IndexedDB and never stored in plain text.",
     "provider": "Provider",
     "model": "Model",
     "apiKey": "API Key",
@@ -136,7 +136,7 @@
     "hideKey": "Hide",
     "apiKeyEmptyHint": "Type or paste the key. Password dots from autofill alone will not save.",
     "savedSummary": "Current: {provider} · {model} · {key}",
-    "byokNotice": "Your API key stays in this page session and is cleared when the page is closed or refreshed. AI calls go directly from the browser to the provider (BYOK).",
+    "byokNotice": "Your API key is encrypted locally in IndexedDB and is never uploaded to Kinolin. AI calls go directly from the browser to the provider (BYOK). Clear it before using a shared device.",
     "compatiblePhishHint": "Only enter trusted API base URLs to avoid phishing.",
     "geminiNetworkHint": "Gemini needs reachability to Google. Persistent 404 usually means network block — try DeepSeek or an OpenAI Compatible gateway.",
     "geminiModelMissing": "Model “{model}” is not available for this key. Try: {sample}",

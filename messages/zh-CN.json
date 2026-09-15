@@ -111,7 +111,7 @@
   },
   "aiConfig": {
     "title": "配置 AI",
-    "localOnlyHint": "Provider 和模型会保存在本机浏览器；API Key 仅保留在当前页面会话，不会持久化。",
+    "localOnlyHint": "Provider 和模型会保存在本机浏览器；API Key 会在 IndexedDB 中加密保存，不会明文存储。",
     "provider": "Provider",
     "model": "模型",
     "apiKey": "API Key",
@@ -136,7 +136,7 @@
     "hideKey": "隐藏",
     "apiKeyEmptyHint": "请手动输入或粘贴 Key；只显示圆点但未真正输入时无法保存",
     "savedSummary": "当前：{provider} · {model} · {key}",
-    "byokNotice": "你的 API Key 仅保留在当前页面会话，关闭或刷新页面后会清除。调用 AI 时由浏览器直接请求对应厂商 API（BYOK）。",
+    "byokNotice": "你的 API Key 会在本机 IndexedDB 中加密保存，不会上传到 Kinolin。调用 AI 时由浏览器直接请求对应厂商 API（BYOK）。请勿在公用设备上保存。",
     "compatiblePhishHint": "自定义 API 地址请仅填写可信地址，谨防钓鱼。",
     "geminiNetworkHint": "Gemini 需能访问 Google。若持续 404，多半是网络不可达；可改用 DeepSeek 或 OpenAI Compatible 网关。",
     "geminiModelMissing": "当前 Key 可用模型中没有「{model}」。可试用：{sample}",

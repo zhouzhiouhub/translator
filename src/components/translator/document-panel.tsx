@@ -540,8 +540,6 @@ function mapDocumentError(
       return t("errorNoFile");
     case "DOCUMENT_NO_TARGETS":
       return t("errorNoTargets");
-    case "DOCUMENT_TOO_MANY_TARGETS":
-      return t("errorTooManyTargets");
     default:
       return code;
   }

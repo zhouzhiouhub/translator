@@ -22,8 +22,6 @@ export interface DocumentTranslateProgress {
   targetLanguage?: string;
 }
 
-export const MAX_BATCH_TARGET_LANGUAGES = 5;
-
 export const SUPPORTED_EXTENSIONS = [
   ".txt",
   ".md",

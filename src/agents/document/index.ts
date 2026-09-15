@@ -5,7 +5,6 @@ import type {
   DocumentTranslateProgress,
   ParsedDocument,
 } from "@/lib/document/types";
-import { MAX_BATCH_TARGET_LANGUAGES } from "@/lib/document/types";
 import type { AIConfig, TranslationStyle } from "@/types/translation";
 
 export interface DocumentTranslateInput {
@@ -144,9 +143,6 @@ export async function runBatchDocumentTranslation(
   ];
   if (uniqueTargets.length === 0) {
     throw new Error("DOCUMENT_NO_TARGETS");
-  }
-  if (uniqueTargets.length > MAX_BATCH_TARGET_LANGUAGES) {
-    throw new Error("DOCUMENT_TOO_MANY_TARGETS");
   }
 
   input.onProgress?.({ phase: "parsing", current: 0, total: 0 });

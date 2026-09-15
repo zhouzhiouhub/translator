@@ -67,10 +67,10 @@
     "dropHint": "Supports {formats}. Max {maxSize}, about {maxChars} characters. Files are parsed locally and never uploaded to Kinolin.",
     "translate": "Translate",
     "languageSelect": "Languages",
-    "languageCount": "{count} / {max}",
+    "languageCount": "{count} selected",
     "addLanguage": "Add target language",
     "removeLanguage": "Remove language",
-    "languageMaxReached": "You can select up to {max} target languages",
+    "languageAllSelected": "All listed languages are already selected",
     "batchHint": "Will translate into: {languages}",
     "privacyNote": "Documents are parsed in your browser and sent in chunks to your AI provider — never to Kinolin servers. Batch languages are translated one after another.",
     "progressParsing": "Parsing document…",
@@ -89,7 +89,6 @@
     "docxExportNote": "DOCX is extracted as plain text; download is a .txt file (layout and styles are not preserved).",
     "errorNoFile": "Choose a document to translate first",
     "errorNoTargets": "Select at least one target language",
-    "errorTooManyTargets": "Too many target languages. Remove some and try again.",
     "errorUnsupported": "Unsupported format. Use TXT, MD, HTML, or DOCX.",
     "errorEmpty": "This document has no translatable text",
     "errorTooLarge": "File is too large. Keep it under {max}.",
@@ -177,13 +176,13 @@
     "documentSteps": {
       "1": "Make sure AI is configured (same provider and key as text translation).",
       "2": "Drop or choose a file (TXT / Markdown / HTML / DOCX).",
-      "3": "Under Languages, each slot is one target; tap + to add more (up to 5). Then pick a style.",
+      "3": "Under Languages, each slot is one target; tap + to add as many as you need. Then pick a style.",
       "4": "Tap Translate. Progress shows the current language and chunk. Afterwards switch language tabs, open Preview, or download the current / all languages.",
       "5": "Batch results are saved under History → Document as one grouped batch, separate from text entries."
     },
     "documentTipsTitle": "Document tips",
     "documentTips": {
-      "1": "Keep each file under about 2 MB and 80k characters. More target languages mean more API calls and time.",
+      "1": "Keep each file under about 2 MB and 80k characters. There is no cap on target languages, but more languages mean more API calls and time.",
       "2": "Fenced Markdown code blocks are left as-is when possible.",
       "3": "DOCX is extracted as plain text and downloaded as .txt. PDF is not supported yet.",
       "4": "Filter History by Text / Document. Batch jobs show as Batch · N langs with per-language preview or delete-all."

@@ -67,10 +67,10 @@
     "dropHint": "支持 {formats}；最大 {maxSize}，约 {maxChars} 字符。文件仅在本机解析，不会上传到 Kinolin。",
     "translate": "翻译",
     "languageSelect": "语言选择",
-    "languageCount": "{count} / {max}",
+    "languageCount": "已选 {count} 种",
     "addLanguage": "添加目标语言",
     "removeLanguage": "移除语言",
-    "languageMaxReached": "最多可选择 {max} 种目标语言",
+    "languageAllSelected": "列表中的语言已全部选中",
     "batchHint": "将一次性翻译为：{languages}",
     "privacyNote": "文档在浏览器内解析并分块调用你的 AI；原文不会发往 Kinolin 服务器。批量多语言会按语言顺序依次翻译。",
     "progressParsing": "正在解析文档…",
@@ -89,7 +89,6 @@
     "docxExportNote": "DOCX 会提取纯文本后翻译；下载为同名 .txt（布局与样式不保留）。",
     "errorNoFile": "请先选择要翻译的文档",
     "errorNoTargets": "请至少选择一种目标语言",
-    "errorTooManyTargets": "目标语言过多，请减少后重试",
     "errorUnsupported": "暂不支持该格式。请使用 TXT、MD、HTML 或 DOCX。",
     "errorEmpty": "文档没有可翻译的文本",
     "errorTooLarge": "文件过大，请控制在 {max} 以内",
@@ -177,13 +176,13 @@
     "documentSteps": {
       "1": "确认已完成 AI 配置（与文本翻译共用同一套 Provider / Key）。",
       "2": "拖拽或选择文件（TXT / Markdown / HTML / DOCX）。",
-      "3": "在「语言选择」中为每种目标语言占一格，点「+」继续添加（最多 5 种）；再选翻译风格。",
+      "3": "在「语言选择」中为每种目标语言占一格，点「+」可继续添加任意多种；再选翻译风格。",
       "4": "点「翻译」。进度会显示当前语言与分段；完成后用语言标签切换预览，或点「在线预览」放大阅读，可下载当前/全部语言。",
       "5": "批量结果会以同一批次写入历史「文档」分类，不会与文本记录混在一起。"
     },
     "documentTipsTitle": "文档翻译注意",
     "documentTips": {
-      "1": "单文件建议不超过 2 MB、约 8 万字符；目标语言越多，API 调用与耗时成倍增加。",
+      "1": "单文件建议不超过 2 MB、约 8 万字符；目标语言不限数量，但越多则 API 调用与耗时成倍增加。",
       "2": "代码块（Markdown 围栏）会尽量原样保留。",
       "3": "DOCX 提取纯文本后翻译并下载为 .txt；暂不支持 PDF。",
       "4": "历史中可按「文本 / 文档」筛选；批量任务显示为「批量 · N 语」，可切换语言预览或整批删除。"

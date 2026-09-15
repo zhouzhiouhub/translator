@@ -4,22 +4,22 @@ import { Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { LanguageSelect } from "@/components/ui/language-select";
 import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
-import { MAX_BATCH_TARGET_LANGUAGES } from "@/lib/document/types";
 import { cn } from "@/lib/utils";
 
 export function MultiTargetLanguagePicker({
   values,
   onChange,
   disabled,
-  max = MAX_BATCH_TARGET_LANGUAGES,
 }: {
   values: string[];
   onChange: (next: string[]) => void;
   disabled?: boolean;
-  max?: number;
 }) {
   const t = useTranslations("document");
   const langs = useLocalizedLanguageOptions();
+  const used = new Set(values);
+  const remaining = langs.filter((l) => !used.has(l.value));
+  const canAdd = remaining.length > 0;
 
   function labelOf(code: string) {
     return langs.find((l) => l.value === code)?.label ?? code;
@@ -37,9 +37,9 @@ export function MultiTargetLanguagePicker({
   }
 
   function addSlot() {
-    if (values.length >= max) return;
-    const used = new Set(values);
-    const candidate = langs.find((l) => !used.has(l.value))?.value ?? "en";
+    if (!canAdd) return;
+    const candidate = remaining[0]?.value;
+    if (!candidate) return;
     onChange([...values, candidate]);
   }
 
@@ -50,7 +50,7 @@ export function MultiTargetLanguagePicker({
           {t("languageSelect")}
         </label>
         <span className="text-[11px] text-muted">
-          {t("languageCount", { count: values.length, max })}
+          {t("languageCount", { count: values.length })}
         </span>
       </div>
 
@@ -86,14 +86,10 @@ export function MultiTargetLanguagePicker({
 
         <button
           type="button"
-          disabled={disabled || values.length >= max}
+          disabled={disabled || !canAdd}
           onClick={addSlot}
           aria-label={t("addLanguage")}
-          title={
-            values.length >= max
-              ? t("languageMaxReached", { max })
-              : t("addLanguage")
-          }
+          title={canAdd ? t("addLanguage") : t("languageAllSelected")}
           className={cn(
             "flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-border text-primary transition-colors",
             "hover:border-primary/50 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-40",

@@ -11,6 +11,7 @@ export class AITranslator implements Translator {
       sourceLanguage: input.sourceLanguage,
       targetLanguage: input.targetLanguage,
       style: input.style,
+      systemPrompt: input.systemPrompt,
     });
 
     return {

@@ -29,6 +29,8 @@ export interface TranslateInput {
   sourceLanguage?: string;
   targetLanguage: string;
   style?: TranslationStyle;
+  /** Optional override for document / specialized translation. */
+  systemPrompt?: string;
 }
 
 export interface TranslateResult {

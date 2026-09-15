@@ -59,7 +59,27 @@
     "resultSource": "Source",
     "resultTarget": "Translation",
     "retranslate": "Retranslate",
-    "metaAi": "Agent · {model} · {style} · {duration}"
+    "metaAi": "Agent · {model} · {style} · {duration}",
+    "followUiPackMissing": "That UI locale pack is not generated yet. Generate it under Settings first."
+  },
+  "document": {
+    "dropTitle": "Drop a file here, or click to browse",
+    "dropHint": "Supports {formats}. Max {maxSize}, about {maxChars} characters. Files are parsed locally and never uploaded to Kinolin.",
+    "translate": "Translate document",
+    "privacyNote": "Documents are parsed in your browser and sent in chunks to your AI provider — never to Kinolin servers.",
+    "progressParsing": "Parsing document…",
+    "progressTranslating": "Translating chunk {current} / {total}…",
+    "resultTitle": "Translation preview",
+    "resultMeta": "{chunks} chunks · {model} · {duration}",
+    "previewSource": "Source",
+    "previewTarget": "Translation",
+    "download": "Download",
+    "docxExportNote": "DOCX is extracted as plain text; download is a .txt file (layout and styles are not preserved).",
+    "errorNoFile": "Choose a document to translate first",
+    "errorUnsupported": "Unsupported format. Use TXT, MD, HTML, or DOCX.",
+    "errorEmpty": "This document has no translatable text",
+    "errorTooLarge": "File is too large. Keep it under {max}.",
+    "errorTooManyChars": "Text is too long. Keep it under about {max} characters."
   },
   "aiConfig": {
     "title": "AI Config",
@@ -110,7 +130,7 @@
     "quickStartTitle": "Quick start",
     "quickStartSteps": {
       "1": "Open AI Config, pick a provider, enter a model and API key, then save and test the connection.",
-      "2": "Go to Translator, paste text, choose target language and style, then tap Translate.",
+      "2": "Go to Translator: paste text under Text, or switch to Document and upload a file.",
       "3": "Use History to search, copy, or restore a past translation."
     },
     "configTitle": "How to configure AI",
@@ -129,14 +149,30 @@
       "3": "Gemini needs reachability to Google. If it keeps failing, try DeepSeek or a Compatible gateway.",
       "4": "For Compatible, only enter API base URLs you trust to avoid phishing."
     },
-    "useTitle": "How to translate",
-    "useIntro": "After configuration, use the Translator page:",
+    "useTitle": "How to translate text",
+    "useIntro": "After configuration, open Translator → Text:",
     "useSteps": {
       "1": "Paste or type source text (watch the character limit).",
       "2": "Pick a target language; optionally enable Switch the whole UI to the target language.",
       "3": "Choose a style: Default, Natural, Casual, Business, Formal, Technical, Academic, or Localized.",
       "4": "Tap Translate. Results show source, translation, and model / style / duration.",
       "5": "Copy the translation, or tap Retranslate with the current settings."
+    },
+    "documentTitle": "How to translate documents",
+    "documentIntro": "On Translator, switch to the Document tab. Files are parsed locally, then sent in chunks to your configured AI — never uploaded to Kinolin.",
+    "documentSteps": {
+      "1": "Make sure AI is configured (same provider and key as text translation).",
+      "2": "Drop or choose a file. Supported: TXT, Markdown (.md), HTML, and DOCX.",
+      "3": "Pick target language and style, then tap Translate document. Long files are split into chunks with progress shown.",
+      "4": "When finished, preview source and translation, copy, or download the result.",
+      "5": "DOCX is extracted as plain text and downloaded as .txt (Word layout is not kept). Markdown/TXT/HTML keep structure as much as possible. PDF is not supported yet."
+    },
+    "documentTipsTitle": "Document tips",
+    "documentTips": {
+      "1": "Keep each file under about 2 MB and 80k characters; split larger docs first.",
+      "2": "Fenced Markdown code blocks are left as-is when possible.",
+      "3": "Chunked translation means more API calls — cost and time grow with document length.",
+      "4": "Successful runs are saved to local History as summaries; download or copy the full text promptly."
     },
     "historyTitle": "Translation history",
     "historyBody": "Each successful translation is saved locally (up to 100 entries). In History you can search, filter by language, copy, restore to the translator, delete one entry, or clear all. Clearing cannot be undone.",
@@ -149,10 +185,10 @@
       "a1": "The Translation Agent needs a provider, model, and API key. Open AI Config, save, and preferably test the connection.",
       "q2": "Still Not configured after saving?",
       "a2": "Make sure the key was typed or pasted. Browser autofill dots alone do not write a real key. Save again and refresh.",
-      "q3": "When will Document translation work?",
-      "a3": "The Document tab is Coming soon. Phase 1 supports text translation only.",
+      "q3": "Which document formats are supported?",
+      "a3": "TXT, Markdown, HTML, and DOCX. PDF is not supported yet. DOCX exports as plain .txt. See How to translate documents above.",
       "q4": "Who pays for the API?",
-      "a4": "Usage is billed to your provider account (BYOK). Kinolin does not charge your API usage."
+      "a4": "Usage is billed to your provider account (BYOK). Kinolin does not charge your API usage. Longer documents use more chunks and more calls."
     },
     "linkConfig": "AI Config",
     "linkTranslator": "Translator",

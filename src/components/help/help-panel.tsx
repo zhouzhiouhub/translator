@@ -72,6 +72,26 @@ export function HelpPanel() {
 
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
         <h2 className="text-base font-semibold text-brand-ink">
+          {t("documentTitle")}
+        </h2>
+        <p className="mt-2 text-sm text-muted">{t("documentIntro")}</p>
+        <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-foreground">
+          {STEP_KEYS.map((key) => (
+            <li key={key}>{t(`documentSteps.${key}`)}</li>
+          ))}
+        </ol>
+        <h3 className="mt-5 text-sm font-semibold text-brand-ink">
+          {t("documentTipsTitle")}
+        </h3>
+        <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted">
+          {TIP_KEYS.map((key) => (
+            <li key={key}>{t(`documentTips.${key}`)}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-brand-ink">
           {t("historyTitle")}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-foreground">

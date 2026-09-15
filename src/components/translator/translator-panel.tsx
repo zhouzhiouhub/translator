@@ -11,6 +11,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { LanguageSelect } from "@/components/ui/language-select";
+import { DocumentPanel } from "@/components/translator/document-panel";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
 import { useUiLocaleStore } from "@/stores/ui-locale";
@@ -19,6 +20,8 @@ import { mapTargetLangToUiLocale } from "@/i18n/ui-locales";
 import { setExplicitUiLocaleCookie } from "@/i18n/resolve-ui-locale";
 import { PageContainer } from "@/components/layout/page-container";
 import type { TranslationStyle } from "@/types/translation";
+
+type TranslatorTab = "text" | "document";
 
 const STYLES: TranslationStyle[] = [
   "default",
@@ -39,6 +42,7 @@ export function TranslatorPanel() {
   const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
+  const [tab, setTab] = useState<TranslatorTab>("text");
 
   const {
     inputText,
@@ -149,87 +153,101 @@ export function TranslatorPanel() {
           <div className="flex gap-2">
             <button
               type="button"
-              className="rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+              onClick={() => setTab("text")}
+              className={
+                tab === "text"
+                  ? "rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                  : "rounded-xl px-3 py-1.5 text-sm text-muted hover:bg-slate-100"
+              }
             >
               {t("tabText")}
             </button>
             <button
               type="button"
-              disabled
-              className="rounded-xl px-3 py-1.5 text-sm text-muted"
+              onClick={() => setTab("document")}
+              className={
+                tab === "document"
+                  ? "rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                  : "rounded-xl px-3 py-1.5 text-sm text-muted hover:bg-slate-100"
+              }
             >
               {t("tabDocument")}
-              <span className="ml-2 text-[11px] text-warning">
-                {tCommon("comingSoon")}
-              </span>
             </button>
           </div>
-          <Badge tone={aiConfigured ? "success" : "warning"}>
-            {aiConfigured ? t("configured") : t("notConfigured")}
-          </Badge>
+          {tab === "text" ? (
+            <Badge tone={aiConfigured ? "success" : "warning"}>
+              {aiConfigured ? t("configured") : t("notConfigured")}
+            </Badge>
+          ) : null}
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
-          <div>
-            <Textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={t("placeholder")}
-              className="min-h-[220px]"
-            />
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-xs text-muted">
-                {t("charCount", { count: inputText.length, max: maxChars })}
-              </span>
-              <Button onClick={onTranslate} disabled={mutation.isPending}>
-                {mutation.isPending ? tCommon("loading") : t("translate")}
-              </Button>
-            </div>
-          </div>
-
-          <aside className="flex flex-col gap-3 rounded-xl border border-border bg-slate-50/80 p-3">
-            <label className="text-xs font-medium text-muted">{t("targetLanguage")}</label>
-            <LanguageSelect
-              value={targetLanguage}
-              onChange={setTargetLanguage}
-            />
-
-            <label className="text-xs font-medium text-muted">{t("style")}</label>
-            <Select
-              value={style}
-              onChange={(e) => setStyle(e.target.value as TranslationStyle)}
-            >
-              {STYLES.map((s) => (
-                <option key={s} value={s}>
-                  {t(
-                    `style${s.charAt(0).toUpperCase()}${s.slice(1)}` as
-                      | "styleDefault"
-                      | "styleNatural"
-                      | "styleCasual"
-                      | "styleBusiness"
-                      | "styleFormal"
-                      | "styleTechnical"
-                      | "styleAcademic"
-                      | "styleLocalized",
-                  )}
-                </option>
-              ))}
-            </Select>
-
-            <label className="mt-1 flex items-start gap-2 text-xs text-muted">
-              <input
-                type="checkbox"
-                checked={followUiToTarget}
-                onChange={(e) => setFollowUiToTarget(e.target.checked)}
-                className="mt-0.5"
+        {tab === "document" ? (
+          <DocumentPanel onToast={showToast} />
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
+            <div>
+              <Textarea
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder={t("placeholder")}
+                className="min-h-[220px]"
               />
-              <span>{t("followUi")}</span>
-            </label>
-          </aside>
-        </div>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-xs text-muted">
+                  {t("charCount", { count: inputText.length, max: maxChars })}
+                </span>
+                <Button onClick={onTranslate} disabled={mutation.isPending}>
+                  {mutation.isPending ? tCommon("loading") : t("translate")}
+                </Button>
+              </div>
+            </div>
+
+            <aside className="flex flex-col gap-3 rounded-xl border border-border bg-slate-50/80 p-3">
+              <label className="text-xs font-medium text-muted">
+                {t("targetLanguage")}
+              </label>
+              <LanguageSelect
+                value={targetLanguage}
+                onChange={setTargetLanguage}
+              />
+
+              <label className="text-xs font-medium text-muted">{t("style")}</label>
+              <Select
+                value={style}
+                onChange={(e) => setStyle(e.target.value as TranslationStyle)}
+              >
+                {STYLES.map((s) => (
+                  <option key={s} value={s}>
+                    {t(
+                      `style${s.charAt(0).toUpperCase()}${s.slice(1)}` as
+                        | "styleDefault"
+                        | "styleNatural"
+                        | "styleCasual"
+                        | "styleBusiness"
+                        | "styleFormal"
+                        | "styleTechnical"
+                        | "styleAcademic"
+                        | "styleLocalized",
+                    )}
+                  </option>
+                ))}
+              </Select>
+
+              <label className="mt-1 flex items-start gap-2 text-xs text-muted">
+                <input
+                  type="checkbox"
+                  checked={followUiToTarget}
+                  onChange={(e) => setFollowUiToTarget(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>{t("followUi")}</span>
+              </label>
+            </aside>
+          </div>
+        )}
       </section>
 
-      {result ? (
+      {tab === "text" && result ? (
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
           <div className="grid gap-4 md:grid-cols-2">
             <div>

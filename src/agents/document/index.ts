@@ -40,12 +40,16 @@ export interface BatchDocumentTranslateResult {
   durationMs: number;
 }
 
-function documentSystemPrompt(style?: TranslationStyle): string {
+function documentSystemPrompt(
+  targetLanguage: string,
+  style?: TranslationStyle,
+): string {
   const styleHint =
     style && style !== "default" ? ` Preferred style: ${style}.` : "";
-  return `You are Kinolin Translator translating a document segment.${styleHint}
+  return `You are Kinolin Translator translating a document segment (target: ${targetLanguage}).${styleHint}
 Preserve Markdown structure, headings, lists, links, and inline formatting.
 Do NOT translate fenced code blocks or inline code; keep them verbatim.
+You MUST write the output in the target language — do not leave source-language text unchanged.
 Output only the translated segment — no preface or commentary.`;
 }
 
@@ -70,7 +74,7 @@ async function translateParsedDocument(options: {
     onProgress,
   } = options;
 
-  const systemPrompt = documentSystemPrompt(style);
+  const systemPrompt = documentSystemPrompt(targetLanguage, style);
   const started = Date.now();
   const translatedParts: string[] = [];
   let detectedSourceLanguage: string | undefined;

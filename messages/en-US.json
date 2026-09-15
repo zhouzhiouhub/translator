@@ -64,7 +64,8 @@
     "followUiBatchHint": "Unavailable for batch (UI switch works with a single target only)",
     "progressBatch": "Translating {lang} ({current}/{total})…",
     "batchDone": "Finished translating into {count} languages",
-    "batchResultMeta": "{languages} languages · {model} · {duration}"
+    "batchResultMeta": "{languages} languages · {model} · {duration}",
+    "errorUnchanged": "The model did not translate into the target language (output matches the source). Try another model."
   },
   "document": {
     "dropTitle": "Drop a file here, or click to browse",
@@ -96,7 +97,8 @@
     "errorUnsupported": "Unsupported format. Use TXT, MD, HTML, or DOCX.",
     "errorEmpty": "This document has no translatable text",
     "errorTooLarge": "File is too large. Keep it under {max}.",
-    "errorTooManyChars": "Text is too long. Keep it under about {max} characters."
+    "errorTooManyChars": "Text is too long. Keep it under about {max} characters.",
+    "errorUnchanged": "The model did not translate into the target language (output matches the source). Try another model and retry."
   },
   "aiConfig": {
     "title": "AI Config",

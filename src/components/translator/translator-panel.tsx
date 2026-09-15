@@ -168,6 +168,10 @@ export function TranslatorPanel() {
         showToast(tDoc("errorNoTargets"));
         return;
       }
+      if (err.message === "TRANSLATION_UNCHANGED") {
+        showToast(t("errorUnchanged"));
+        return;
+      }
       setToast(err.message);
     },
   });

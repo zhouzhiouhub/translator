@@ -64,7 +64,8 @@
     "followUiBatchHint": "批量多语言时不可用（仅单目标语言可切换界面）",
     "progressBatch": "正在翻译 {lang}（{current}/{total}）…",
     "batchDone": "已完成 {count} 种语言的翻译",
-    "batchResultMeta": "{languages} 种语言 · {model} · {duration}"
+    "batchResultMeta": "{languages} 种语言 · {model} · {duration}",
+    "errorUnchanged": "模型未真正译成目标语言（译文与原文相同或仍是源语），请换模型后重试"
   },
   "document": {
     "dropTitle": "拖拽文件到此处，或点击选择",
@@ -96,7 +97,8 @@
     "errorUnsupported": "暂不支持该格式。请使用 TXT、MD、HTML 或 DOCX。",
     "errorEmpty": "文档没有可翻译的文本",
     "errorTooLarge": "文件过大，请控制在 {max} 以内",
-    "errorTooManyChars": "文本过长，请控制在约 {max} 字符以内"
+    "errorTooManyChars": "文本过长，请控制在约 {max} 字符以内",
+    "errorUnchanged": "模型未真正译成目标语言（译文与原文相同或仍是源语），请换模型后重试该语言"
   },
   "aiConfig": {
     "title": "配置 AI",

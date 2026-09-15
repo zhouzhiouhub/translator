@@ -538,6 +538,8 @@ function mapDocumentError(
       return t("errorNoFile");
     case "DOCUMENT_NO_TARGETS":
       return t("errorNoTargets");
+    case "TRANSLATION_UNCHANGED":
+      return t("errorUnchanged");
     default:
       return code;
   }

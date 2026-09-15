@@ -41,7 +41,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
+.open-next/
 # design docs (local)
 技术设计.md
 设计稿.md

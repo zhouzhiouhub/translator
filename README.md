@@ -19,7 +19,7 @@ npm run dev
 
 ## 部署（Cloudflare Workers + OpenNext）
 
-`npm run build` 会先跑 `next build`，再编译 OpenNext Worker（`.open-next`），因此 Cloudflare Workers Builds 默认的：
+`npm run build` 会走 OpenNext（内部以 standalone 模式执行 `next build`，再生成 `.open-next`），因此 Cloudflare Workers Builds 默认：
 
 - Build command: `npm run build`
 - Deploy command: `npx wrangler deploy`
@@ -30,14 +30,7 @@ npm run dev
 npm run deploy
 ```
 
-若只想构建 Next（不做 Worker 打包）：`npm run build:next`。
-
-推荐（更快、少歧义）也可在控制台显式写成：
-
-| 设置 | 值 |
-|------|------|
-| Build command | `npx @opennextjs/cloudflare build` |
-| Deploy command | `npx @opennextjs/cloudflare deploy` |
+仅 Next 构建（不做 Worker）：`npm run build:next`。
 
 ## 品牌资源
 

@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search } from "lucide-react";
@@ -27,6 +28,10 @@ type SearchableSelectProps = {
   searchPlaceholder?: string;
   emptyText?: string;
   className?: string;
+  /** Classes for the trigger button (e.g. transparent border). */
+  triggerClassName?: string;
+  /** Content rendered inside the trigger before the label (one unified button). */
+  leading?: ReactNode;
 };
 
 type PanelPos = { top: number; left: number; width: number };
@@ -40,6 +45,8 @@ export function SearchableSelect({
   searchPlaceholder = "Search…",
   emptyText = "No matches",
   className,
+  triggerClassName,
+  leading,
 }: SearchableSelectProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -243,10 +250,16 @@ export function SearchableSelect({
         aria-controls={listId}
         onClick={() => !disabled && setOpen((v) => !v)}
         onKeyDown={onTriggerKeyDown}
-        className="flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-border bg-white px-3 text-left text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
+        className={cn(
+          "flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-border bg-white px-3 text-left text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60",
+          triggerClassName,
+        )}
       >
-        <span className={cn("truncate", !selected && "text-muted")}>
-          {selected?.label ?? placeholder}
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          {leading}
+          <span className={cn("truncate", !selected && "text-muted")}>
+            {selected?.label ?? placeholder}
+          </span>
         </span>
         <ChevronDown
           className={cn(

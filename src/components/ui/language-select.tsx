@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import {
@@ -13,6 +14,8 @@ type LanguageSelectProps = {
   onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
+  triggerClassName?: string;
+  leading?: ReactNode;
   /** Exclude built-in zh-CN / en-US (settings pack generation). */
   excludeBuiltin?: boolean;
   /** Hide these language codes from the list (already selected targets). */
@@ -28,6 +31,8 @@ export function LanguageSelect({
   onChange,
   disabled,
   className,
+  triggerClassName,
+  leading,
   excludeBuiltin = false,
   excludeValues,
   allOptionLabel,
@@ -52,6 +57,8 @@ export function LanguageSelect({
       options={options}
       disabled={disabled}
       className={className}
+      triggerClassName={triggerClassName}
+      leading={leading}
       placeholder={placeholder}
       searchPlaceholder={tCommon("languageSearchPlaceholder")}
       emptyText={tCommon("languageSearchEmpty")}

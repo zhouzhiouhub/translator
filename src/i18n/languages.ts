@@ -270,6 +270,17 @@ export function languageLabel(
   code: string,
   display: "zh" | "en" | "both" = "zh",
 ): string {
+  if (code === "zh-CN") {
+    if (display === "en") return "Simplified Chinese";
+    if (display === "both") return "简体中文 · Simplified Chinese";
+    return "简体中文";
+  }
+  if (code === "en-US") {
+    if (display === "en") return "English";
+    if (display === "both") return "English · English";
+    return "English";
+  }
+
   const lang = byCode.get(code);
   if (!lang) return code;
   if (display === "en") return lang.nameEn;
@@ -282,6 +293,15 @@ export function languageLabel(
  * Use for SSR / first paint to avoid Intl ICU mismatches.
  */
 export function stableLanguageName(code: string, uiLocale: string): string {
+  if (code === "zh-CN") {
+    return (uiLocale || "en").toLowerCase().startsWith("zh")
+      ? "简体中文"
+      : "Simplified Chinese";
+  }
+  if (code === "en-US") {
+    return "English";
+  }
+
   const lang = byCode.get(code);
   if (!lang) return code;
   if ((uiLocale || "en").toLowerCase().startsWith("zh")) return lang.nameZh;
@@ -293,6 +313,10 @@ export function stableLanguageName(code: string, uiLocale: string): string {
  * Node and browsers may disagree — only use after client mount.
  */
 export function localizedLanguageName(code: string, uiLocale: string): string {
+  if (code === "zh-CN" || code === "en-US") {
+    return stableLanguageName(code, uiLocale);
+  }
+
   const tag = uiLocale || "en";
   try {
     const dn = new Intl.DisplayNames([tag, "en"], { type: "language" });

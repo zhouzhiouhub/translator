@@ -5,6 +5,7 @@ import {
   parseReadyLocalesCookie,
   resolveBrowserUiLocale,
 } from "../src/i18n/resolve-ui-locale";
+import { languageLabel, stableLanguageName } from "../src/i18n/languages";
 
 describe("resolveBrowserUiLocale", () => {
   it("falls back to en-US when nothing matches", () => {
@@ -33,6 +34,15 @@ describe("resolveBrowserUiLocale", () => {
       resolveBrowserUiLocale("zh-TW,zh;q=0.8", ["zh-CN", "en-US"]),
       "zh-CN",
     );
+  });
+});
+
+describe("fixed UI locale labels", () => {
+  it("uses Simplified Chinese and English labels for built-in locales", () => {
+    assert.equal(stableLanguageName("zh-CN", "zh-CN"), "简体中文");
+    assert.equal(stableLanguageName("en-US", "en-US"), "English");
+    assert.equal(languageLabel("zh-CN", "zh"), "简体中文");
+    assert.equal(languageLabel("en-US", "zh"), "English");
   });
 });
 

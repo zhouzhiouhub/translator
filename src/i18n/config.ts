@@ -18,7 +18,7 @@ export const defaultLocale: AppLocale = "en-US";
 
 export const localeLabels: Record<string, string> = Object.fromEntries([
   ...APP_LANGUAGES.map((l) => [l.code, l.nameZh] as const),
-  ["zh-CN", "中文"],
+  ["zh-CN", "简体中文"],
   ["en-US", "English"],
 ]);
 

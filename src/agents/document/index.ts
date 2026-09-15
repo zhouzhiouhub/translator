@@ -1,5 +1,9 @@
-import { checkAiConfig, runTranslation } from "@/agents/translator";
-import { throwIfAborted } from "@/lib/abort";
+import {
+  checkAiConfig,
+  runTranslation,
+  type BatchItemStatus,
+} from "@/agents/translator";
+import { isAbortError, throwIfAborted } from "@/lib/abort";
 import { chunkDocumentText } from "@/lib/document/chunk";
 import { parseDocumentFile } from "@/lib/document/parse";
 import type {
@@ -26,6 +30,8 @@ export interface DocumentTranslateResult {
   model?: string;
   style?: TranslationStyle;
   durationMs: number;
+  /** `pending` = cancelled before this target finished. */
+  status: BatchItemStatus;
 }
 
 export interface BatchDocumentTranslateInput {
@@ -41,6 +47,24 @@ export interface BatchDocumentTranslateResult {
   parsed: ParsedDocument;
   results: DocumentTranslateResult[];
   durationMs: number;
+  cancelled?: boolean;
+}
+
+function pendingDocumentResult(
+  parsed: ParsedDocument,
+  targetLanguage: string,
+  chunks: number,
+  style?: TranslationStyle,
+): DocumentTranslateResult {
+  return {
+    parsed,
+    text: "",
+    chunks,
+    targetLanguage,
+    style,
+    durationMs: 0,
+    status: "pending",
+  };
 }
 
 function documentSystemPrompt(
@@ -125,6 +149,7 @@ async function translateParsedDocument(options: {
     model,
     style,
     durationMs: Date.now() - started,
+    status: "done",
   };
 }
 
@@ -170,20 +195,40 @@ export async function runBatchDocumentTranslation(
   const results: DocumentTranslateResult[] = [];
 
   for (let li = 0; li < uniqueTargets.length; li++) {
-    throwIfAborted(input.signal);
     const targetLanguage = uniqueTargets[li]!;
-    const one = await translateParsedDocument({
-      parsed,
-      chunks,
-      targetLanguage,
-      style: input.style,
-      aiConfig: input.aiConfig,
-      languageIndex: li + 1,
-      languageTotal: uniqueTargets.length,
-      signal: input.signal,
-      onProgress: input.onProgress,
-    });
-    results.push(one);
+    try {
+      throwIfAborted(input.signal);
+      const one = await translateParsedDocument({
+        parsed,
+        chunks,
+        targetLanguage,
+        style: input.style,
+        aiConfig: input.aiConfig,
+        languageIndex: li + 1,
+        languageTotal: uniqueTargets.length,
+        signal: input.signal,
+        onProgress: input.onProgress,
+      });
+      results.push(one);
+    } catch (err) {
+      if (!isAbortError(err)) throw err;
+      for (let j = li; j < uniqueTargets.length; j++) {
+        results.push(
+          pendingDocumentResult(
+            parsed,
+            uniqueTargets[j]!,
+            chunks.length,
+            input.style,
+          ),
+        );
+      }
+      return {
+        parsed,
+        results,
+        durationMs: Date.now() - started,
+        cancelled: true,
+      };
+    }
   }
 
   input.onProgress?.({

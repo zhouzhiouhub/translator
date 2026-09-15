@@ -103,6 +103,15 @@ export function DocumentPanel({
     );
   }, [activeLang, batchResult]);
 
+  const doneResults = useMemo(
+    () => batchResult?.results.filter((r) => r.status === "done") ?? [],
+    [batchResult],
+  );
+  const pendingCount = batchResult
+    ? batchResult.results.length - doneResults.length
+    : 0;
+  const activeDone = activeResult?.status === "done";
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (!file) throw new Error("DOCUMENT_NO_FILE");
@@ -124,26 +133,45 @@ export function DocumentPanel({
     },
     onSuccess: (data) => {
       setBatchResult(data);
-      setActiveLang(data.results[0]?.targetLanguage ?? null);
+      const firstDone =
+        data.results.find((r) => r.status === "done") ?? data.results[0];
+      setActiveLang(firstDone?.targetLanguage ?? null);
       setProgress(null);
-      const batchId = createBatchId();
-      addBatchEntries(
-        data.results.map((r) => ({
-          kind: "document" as const,
-          batchId,
-          fileName: data.parsed.fileName,
-          sourceText: data.parsed.text,
-          translatedText: r.text,
-          sourceLanguage: r.detectedSourceLanguage,
-          targetLanguage: r.targetLanguage,
-          style: r.style ?? style,
-          model: r.model,
-          durationMs: r.durationMs,
-        })),
-      );
+
+      const completed = data.results.filter((r) => r.status === "done");
+      const pending = data.results.length - completed.length;
+
+      if (completed.length > 0) {
+        const batchId = createBatchId();
+        addBatchEntries(
+          completed.map((r) => ({
+            kind: "document" as const,
+            batchId: completed.length > 1 ? batchId : undefined,
+            fileName: data.parsed.fileName,
+            sourceText: data.parsed.text,
+            translatedText: r.text,
+            sourceLanguage: r.detectedSourceLanguage,
+            targetLanguage: r.targetLanguage,
+            style: r.style ?? style,
+            model: r.model,
+            durationMs: r.durationMs,
+          })),
+        );
+      }
+
+      if (data.cancelled) {
+        onToast(
+          t("cancelledPartial", {
+            done: completed.length,
+            pending,
+          }),
+        );
+        return;
+      }
+
       onToast(
         t("batchDone", {
-          count: data.results.length,
+          count: completed.length,
         }),
       );
     },
@@ -200,7 +228,7 @@ export function DocumentPanel({
   }
 
   function onDownload(result: DocumentTranslateResult) {
-    if (!file) return;
+    if (!file || result.status !== "done") return;
     downloadTextFile(
       translatedFileName(file.name, result.targetLanguage),
       result.text,
@@ -209,7 +237,7 @@ export function DocumentPanel({
 
   function onDownloadAll() {
     if (!file || !batchResult) return;
-    for (const r of batchResult.results) {
+    for (const r of doneResults) {
       onDownload(r);
     }
   }
@@ -369,17 +397,28 @@ export function DocumentPanel({
                 {t("resultTitle")}
               </h3>
               <p className="mt-0.5 text-xs text-muted">
-                {t("batchResultMeta", {
-                  languages: batchResult.results.length,
-                  model: activeResult.model ?? "—",
-                  duration: `${(batchResult.durationMs / 1000).toFixed(1)}s`,
-                })}
+                {batchResult.cancelled || pendingCount > 0
+                  ? t("batchResultMetaPartial", {
+                      done: doneResults.length,
+                      total: batchResult.results.length,
+                      model:
+                        (activeDone
+                          ? activeResult.model
+                          : doneResults[0]?.model) ?? "—",
+                      duration: `${(batchResult.durationMs / 1000).toFixed(1)}s`,
+                    })
+                  : t("batchResultMeta", {
+                      languages: batchResult.results.length,
+                      model: activeResult.model ?? "—",
+                      duration: `${(batchResult.durationMs / 1000).toFixed(1)}s`,
+                    })}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant="secondary"
+                disabled={!activeDone}
                 onClick={() => setPreviewOpen(true)}
               >
                 <Eye className="mr-1.5 h-3.5 w-3.5" />
@@ -388,6 +427,7 @@ export function DocumentPanel({
               <Button
                 size="sm"
                 variant="secondary"
+                disabled={!activeDone}
                 onClick={async () => {
                   await navigator.clipboard.writeText(activeResult.text);
                   onToast(tCommon("copy"));
@@ -395,10 +435,15 @@ export function DocumentPanel({
               >
                 {tCommon("copy")}
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => onDownload(activeResult)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!activeDone}
+                onClick={() => onDownload(activeResult)}
+              >
                 {t("download")}
               </Button>
-              {batchResult.results.length > 1 ? (
+              {doneResults.length > 1 ? (
                 <Button size="sm" onClick={onDownloadAll}>
                   {t("downloadAll")}
                 </Button>
@@ -410,6 +455,7 @@ export function DocumentPanel({
             <div className="mb-3 flex flex-wrap gap-2">
               {batchResult.results.map((r) => {
                 const selected = r.targetLanguage === activeResult.targetLanguage;
+                const pending = r.status === "pending";
                 return (
                   <button
                     key={r.targetLanguage}
@@ -418,10 +464,17 @@ export function DocumentPanel({
                     className={
                       selected
                         ? "rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
-                        : "rounded-xl border border-border bg-white px-3 py-1.5 text-sm text-muted hover:bg-slate-50"
+                        : pending
+                          ? "rounded-xl border border-dashed border-border bg-slate-50 px-3 py-1.5 text-sm text-muted"
+                          : "rounded-xl border border-border bg-white px-3 py-1.5 text-sm text-muted hover:bg-slate-50"
                     }
                   >
                     {langLabel(r.targetLanguage)}
+                    {pending ? (
+                      <span className="ml-1 text-[11px] opacity-80">
+                        · {t("notGenerated")}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -440,7 +493,7 @@ export function DocumentPanel({
                 {t("previewTarget")} · {langLabel(activeResult.targetLanguage)}
               </p>
               <pre className="max-h-[240px] overflow-auto rounded-xl border border-border bg-white p-3 text-xs whitespace-pre-wrap text-foreground">
-                {activeResult.text}
+                {activeDone ? activeResult.text : t("notGeneratedHint")}
               </pre>
             </div>
           </div>
@@ -451,7 +504,7 @@ export function DocumentPanel({
       ) : null}
 
       <Dialog
-        open={previewOpen && !!activeResult}
+        open={previewOpen && !!activeResult && activeDone}
         onClose={() => setPreviewOpen(false)}
         title={t("previewDialogTitle", {
           lang: activeResult ? langLabel(activeResult.targetLanguage) : "",
@@ -462,7 +515,7 @@ export function DocumentPanel({
             <Button variant="secondary" onClick={() => setPreviewOpen(false)}>
               {tCommon("cancel")}
             </Button>
-            {activeResult ? (
+            {activeResult && activeDone ? (
               <Button
                 onClick={async () => {
                   await navigator.clipboard.writeText(activeResult.text);
@@ -475,25 +528,32 @@ export function DocumentPanel({
           </>
         }
       >
-        {batchResult && activeResult ? (
+        {batchResult && activeResult && activeDone ? (
           <div className="space-y-3">
             {batchResult.results.length > 1 ? (
               <div className="flex flex-wrap gap-2">
                 {batchResult.results.map((r) => {
                   const selected =
                     r.targetLanguage === activeResult.targetLanguage;
+                  const pending = r.status === "pending";
                   return (
                     <button
                       key={r.targetLanguage}
                       type="button"
-                      onClick={() => setActiveLang(r.targetLanguage)}
+                      disabled={pending}
+                      onClick={() => {
+                        if (!pending) setActiveLang(r.targetLanguage);
+                      }}
                       className={
                         selected
                           ? "rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
-                          : "rounded-lg border border-border px-2.5 py-1 text-xs text-muted hover:bg-slate-50"
+                          : pending
+                            ? "rounded-lg border border-dashed border-border px-2.5 py-1 text-xs text-muted opacity-60"
+                            : "rounded-lg border border-border px-2.5 py-1 text-xs text-muted hover:bg-slate-50"
                       }
                     >
                       {langLabel(r.targetLanguage)}
+                      {pending ? ` · ${t("notGenerated")}` : ""}
                     </button>
                   );
                 })}

@@ -109,6 +109,15 @@ export function TranslatorPanel() {
     );
   }, [activeLang, batchResult]);
 
+  const doneResults = useMemo(
+    () => batchResult?.results.filter((r) => r.status === "done") ?? [],
+    [batchResult],
+  );
+  const pendingCount = batchResult
+    ? batchResult.results.length - doneResults.length
+    : 0;
+  const activeDone = activeResult?.status === "done";
+
   const mutation = useMutation({
     mutationFn: () => {
       abortRef.current?.abort();
@@ -129,34 +138,52 @@ export function TranslatorPanel() {
     onSuccess: (data) => {
       setProgress(null);
       setBatchResult(data);
-      const first = data.results[0];
-      setActiveLang(first?.targetLanguage ?? null);
-      if (first) {
-        setResult(first);
-        setTargetLanguage(first.targetLanguage);
+      const firstDone =
+        data.results.find((r) => r.status === "done") ?? data.results[0];
+      setActiveLang(firstDone?.targetLanguage ?? null);
+      if (firstDone?.status === "done") {
+        setResult(firstDone);
+        setTargetLanguage(firstDone.targetLanguage);
+      } else {
+        setResult(null);
       }
 
-      const batchId = createBatchId();
-      addBatchEntries(
-        data.results.map((r) => ({
-          kind: "text" as const,
-          batchId: data.results.length > 1 ? batchId : undefined,
-          sourceText: inputText,
-          translatedText: r.text,
-          sourceLanguage: r.detectedSourceLanguage,
-          targetLanguage: r.targetLanguage,
-          style: r.style ?? style,
-          model: r.model,
-          durationMs: r.durationMs,
-        })),
-      );
+      const completed = data.results.filter((r) => r.status === "done");
+      const pending = data.results.length - completed.length;
 
-      if (data.results.length > 1) {
-        showToast(t("batchDone", { count: data.results.length }));
+      if (completed.length > 0) {
+        const batchId = createBatchId();
+        addBatchEntries(
+          completed.map((r) => ({
+            kind: "text" as const,
+            batchId: completed.length > 1 ? batchId : undefined,
+            sourceText: inputText,
+            translatedText: r.text,
+            sourceLanguage: r.detectedSourceLanguage,
+            targetLanguage: r.targetLanguage,
+            style: r.style ?? style,
+            model: r.model,
+            durationMs: r.durationMs,
+          })),
+        );
       }
 
-      if (followUiToTarget && data.results.length === 1 && first) {
-        const uiLocale = mapTargetLangToUiLocale(first.targetLanguage);
+      if (data.cancelled) {
+        showToast(
+          t("cancelledPartial", {
+            done: completed.length,
+            pending,
+          }),
+        );
+        return;
+      }
+
+      if (completed.length > 1) {
+        showToast(t("batchDone", { count: completed.length }));
+      }
+
+      if (followUiToTarget && completed.length === 1 && firstDone?.status === "done") {
+        const uiLocale = mapTargetLangToUiLocale(firstDone.targetLanguage);
         if (uiLocale) {
           void applyLocale(uiLocale)
             .then(() => {
@@ -376,22 +403,34 @@ export function TranslatorPanel() {
               </h3>
               <p className="mt-0.5 text-xs text-muted">
                 {batchResult.results.length > 1
-                  ? t("batchResultMeta", {
-                      languages: batchResult.results.length,
-                      model: activeResult.model ?? "—",
-                      duration: `${(batchResult.durationMs / 1000).toFixed(1)}s`,
-                    })
-                  : t("metaAi", {
-                      model: activeResult.model ?? "—",
-                      style: activeResult.style ?? "default",
-                      duration: `${(activeResult.durationMs / 1000).toFixed(1)}s`,
-                    })}
+                  ? batchResult.cancelled || pendingCount > 0
+                    ? t("batchResultMetaPartial", {
+                        done: doneResults.length,
+                        total: batchResult.results.length,
+                        model:
+                          (activeDone ? activeResult.model : doneResults[0]?.model) ??
+                          "—",
+                        duration: `${(batchResult.durationMs / 1000).toFixed(1)}s`,
+                      })
+                    : t("batchResultMeta", {
+                        languages: batchResult.results.length,
+                        model: activeResult.model ?? "—",
+                        duration: `${(batchResult.durationMs / 1000).toFixed(1)}s`,
+                      })
+                  : activeDone
+                    ? t("metaAi", {
+                        model: activeResult.model ?? "—",
+                        style: activeResult.style ?? "default",
+                        duration: `${(activeResult.durationMs / 1000).toFixed(1)}s`,
+                      })
+                    : t("notGeneratedHint")}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant="secondary"
+                disabled={!activeDone}
                 onClick={() => setPreviewOpen(true)}
               >
                 <Eye className="mr-1.5 h-3.5 w-3.5" />
@@ -400,6 +439,7 @@ export function TranslatorPanel() {
               <Button
                 size="sm"
                 variant="secondary"
+                disabled={!activeDone}
                 onClick={async () => {
                   await navigator.clipboard.writeText(activeResult.text);
                   showToast(tCommon("copy"));
@@ -410,6 +450,7 @@ export function TranslatorPanel() {
               <Button
                 size="sm"
                 variant="secondary"
+                disabled={!activeDone}
                 onClick={() => {
                   downloadTextFile(
                     historyDownloadFileName({
@@ -423,12 +464,12 @@ export function TranslatorPanel() {
               >
                 {t("download")}
               </Button>
-              {batchResult.results.length > 1 ? (
+              {doneResults.length > 1 ? (
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={() => {
-                    for (const r of batchResult.results) {
+                    for (const r of doneResults) {
                       downloadTextFile(
                         historyDownloadFileName({
                           targetLanguage: r.targetLanguage,
@@ -458,22 +499,32 @@ export function TranslatorPanel() {
             <div className="mb-3 flex flex-wrap gap-2">
               {batchResult.results.map((r) => {
                 const selected = r.targetLanguage === activeResult.targetLanguage;
+                const pending = r.status === "pending";
                 return (
                   <button
                     key={r.targetLanguage}
                     type="button"
                     onClick={() => {
                       setActiveLang(r.targetLanguage);
-                      setResult(r);
-                      setTargetLanguage(r.targetLanguage);
+                      if (r.status === "done") {
+                        setResult(r);
+                        setTargetLanguage(r.targetLanguage);
+                      }
                     }}
                     className={
                       selected
                         ? "rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
-                        : "rounded-xl border border-border bg-white px-3 py-1.5 text-sm text-muted hover:bg-slate-50"
+                        : pending
+                          ? "rounded-xl border border-dashed border-border bg-slate-50 px-3 py-1.5 text-sm text-muted"
+                          : "rounded-xl border border-border bg-white px-3 py-1.5 text-sm text-muted hover:bg-slate-50"
                     }
                   >
                     {langLabel(r.targetLanguage)}
+                    {pending ? (
+                      <span className="ml-1 text-[11px] opacity-80">
+                        · {t("notGenerated")}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -495,10 +546,12 @@ export function TranslatorPanel() {
             <div>
               <div className="mb-2 text-xs text-muted">
                 {t("targetLanguage")}：{langLabel(activeResult.targetLanguage)}
-                {activeResult.style ? ` · ${activeResult.style}` : ""}
+                {activeDone && activeResult.style
+                  ? ` · ${activeResult.style}`
+                  : ""}
               </div>
               <div className="min-h-[120px] rounded-xl border border-border bg-white p-3 text-sm whitespace-pre-wrap">
-                {activeResult.text}
+                {activeDone ? activeResult.text : t("notGeneratedHint")}
               </div>
             </div>
           </div>
@@ -506,7 +559,7 @@ export function TranslatorPanel() {
       ) : null}
 
       <Dialog
-        open={previewOpen && !!activeResult}
+        open={previewOpen && !!activeResult && activeDone}
         onClose={() => setPreviewOpen(false)}
         title={tDoc("previewDialogTitle", {
           lang: activeResult ? langLabel(activeResult.targetLanguage) : "",
@@ -517,7 +570,7 @@ export function TranslatorPanel() {
             <Button variant="secondary" onClick={() => setPreviewOpen(false)}>
               {tCommon("cancel")}
             </Button>
-            {activeResult ? (
+            {activeResult && activeDone ? (
               <Button
                 onClick={async () => {
                   await navigator.clipboard.writeText(activeResult.text);
@@ -530,18 +583,21 @@ export function TranslatorPanel() {
           </>
         }
       >
-        {batchResult && activeResult ? (
+        {batchResult && activeResult && activeDone ? (
           <div className="space-y-3">
             {batchResult.results.length > 1 ? (
               <div className="flex flex-wrap gap-2">
                 {batchResult.results.map((r) => {
                   const selected =
                     r.targetLanguage === activeResult.targetLanguage;
+                  const pending = r.status === "pending";
                   return (
                     <button
                       key={r.targetLanguage}
                       type="button"
+                      disabled={pending}
                       onClick={() => {
+                        if (pending) return;
                         setActiveLang(r.targetLanguage);
                         setResult(r);
                         setTargetLanguage(r.targetLanguage);
@@ -549,10 +605,13 @@ export function TranslatorPanel() {
                       className={
                         selected
                           ? "rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
-                          : "rounded-lg border border-border px-2.5 py-1 text-xs text-muted hover:bg-slate-50"
+                          : pending
+                            ? "rounded-lg border border-dashed border-border px-2.5 py-1 text-xs text-muted opacity-60"
+                            : "rounded-lg border border-border px-2.5 py-1 text-xs text-muted hover:bg-slate-50"
                       }
                     >
                       {langLabel(r.targetLanguage)}
+                      {pending ? ` · ${t("notGenerated")}` : ""}
                     </button>
                   );
                 })}

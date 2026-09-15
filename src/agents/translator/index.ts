@@ -1,5 +1,5 @@
 import type { AIConfig, TranslateInput, TranslateResult } from "@/types/translation";
-import { throwIfAborted } from "@/lib/abort";
+import { isAbortError, throwIfAborted } from "@/lib/abort";
 import { AITranslator } from "@/translation/ai/AITranslator";
 
 export interface TranslateOrchestrationInput extends TranslateInput {
@@ -20,13 +20,31 @@ export interface BatchTranslateProgress {
   targetLanguage: string;
 }
 
+export type BatchItemStatus = "done" | "pending";
+
 export interface BatchTranslateResultItem extends TranslateResult {
   targetLanguage: string;
+  /** `pending` = cancelled before this target finished. */
+  status: BatchItemStatus;
 }
 
 export interface BatchTranslateResult {
   results: BatchTranslateResultItem[];
   durationMs: number;
+  cancelled?: boolean;
+}
+
+function pendingBatchItem(
+  targetLanguage: string,
+  style?: TranslateInput["style"],
+): BatchTranslateResultItem {
+  return {
+    targetLanguage,
+    text: "",
+    durationMs: 0,
+    status: "pending",
+    style,
+  };
 }
 
 export function checkAiConfig(config?: AIConfig | null): AiConfigCheck {
@@ -79,22 +97,34 @@ export async function runBatchTranslation(input: {
   const results: BatchTranslateResultItem[] = [];
 
   for (let i = 0; i < uniqueTargets.length; i++) {
-    throwIfAborted(input.signal);
     const targetLanguage = uniqueTargets[i]!;
-    input.onProgress?.({
-      current: i + 1,
-      total: uniqueTargets.length,
-      targetLanguage,
-    });
-    const one = await runTranslation({
-      text: input.text,
-      targetLanguage,
-      style: input.style,
-      sourceLanguage: input.sourceLanguage,
-      aiConfig: input.aiConfig,
-      signal: input.signal,
-    });
-    results.push({ ...one, targetLanguage });
+    try {
+      throwIfAborted(input.signal);
+      input.onProgress?.({
+        current: i + 1,
+        total: uniqueTargets.length,
+        targetLanguage,
+      });
+      const one = await runTranslation({
+        text: input.text,
+        targetLanguage,
+        style: input.style,
+        sourceLanguage: input.sourceLanguage,
+        aiConfig: input.aiConfig,
+        signal: input.signal,
+      });
+      results.push({ ...one, targetLanguage, status: "done" });
+    } catch (err) {
+      if (!isAbortError(err)) throw err;
+      for (let j = i; j < uniqueTargets.length; j++) {
+        results.push(pendingBatchItem(uniqueTargets[j]!, input.style));
+      }
+      return {
+        results,
+        durationMs: Date.now() - started,
+        cancelled: true,
+      };
+    }
   }
 
   return {

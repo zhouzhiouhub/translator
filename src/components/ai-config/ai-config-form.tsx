@@ -164,6 +164,7 @@ export function AiConfigForm() {
     <PageContainer>
       <header>
         <h1 className="text-2xl font-semibold text-brand-ink">{t("title")}</h1>
+        <p className="mt-2 text-sm text-muted">{t("localOnlyHint")}</p>
       </header>
 
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -304,11 +305,7 @@ export function AiConfigForm() {
         </form>
       </section>
 
-      {showErrorHints ? (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-900">
-          {t("byokNotice")}
-        </section>
-      ) : null}
+      <p className="text-sm text-muted">{t("byokNotice")}</p>
     </PageContainer>
   );
 }

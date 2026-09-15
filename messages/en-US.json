@@ -89,6 +89,7 @@
   },
   "aiConfig": {
     "title": "AI Config",
+    "localOnlyHint": "Provider, model, and API key stay in this browser only — nothing is uploaded to the cloud.",
     "provider": "Provider",
     "model": "Model",
     "apiKey": "API Key",

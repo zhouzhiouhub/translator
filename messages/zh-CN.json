@@ -89,6 +89,7 @@
   },
   "aiConfig": {
     "title": "配置 AI",
+    "localOnlyHint": "Provider、模型与 API Key 仅保存在本机浏览器，不会上传到云端。",
     "provider": "Provider",
     "model": "模型",
     "apiKey": "API Key",

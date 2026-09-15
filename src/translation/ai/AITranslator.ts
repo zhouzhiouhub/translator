@@ -3,7 +3,9 @@ import { throwIfAborted } from "@/lib/abort";
 import {
   defaultTranslateSystemPrompt,
   formatTargetLanguageForPrompt,
+  guessSourceLanguage,
   looksUntranslated,
+  parseTranslateModelOutput,
   strongTranslateSystemPrompt,
 } from "@/lib/translation/quality";
 import type {
@@ -20,11 +22,12 @@ export class AITranslator implements Translator {
     throwIfAborted(input.signal);
     const provider = createAIProvider(this.config);
     const targetLabel = formatTargetLanguageForPrompt(input.targetLanguage);
+    const usesJsonEnvelope = !input.systemPrompt;
     const baseSystem =
       input.systemPrompt ??
       defaultTranslateSystemPrompt(input.targetLanguage, input.style);
 
-    const first = await provider.translate({
+    const firstRaw = await provider.translate({
       text: input.text,
       sourceLanguage: input.sourceLanguage,
       targetLanguage: targetLabel,
@@ -32,33 +35,47 @@ export class AITranslator implements Translator {
       systemPrompt: baseSystem,
       signal: input.signal,
     });
+    const first = usesJsonEnvelope
+      ? parseTranslateModelOutput(firstRaw.text, input.text)
+      : {
+          text: firstRaw.text,
+          detectedSourceLanguage:
+            firstRaw.detectedSourceLanguage ??
+            guessSourceLanguage(input.text),
+        };
 
-    if (
-      !looksUntranslated(input.text, first.text, input.targetLanguage)
-    ) {
+    if (!looksUntranslated(input.text, first.text, input.targetLanguage)) {
       return {
         text: first.text,
         detectedSourceLanguage: first.detectedSourceLanguage,
-        model: first.model,
+        model: firstRaw.model,
         style: input.style,
-        durationMs: first.durationMs,
+        durationMs: firstRaw.durationMs,
       };
     }
 
     throwIfAborted(input.signal);
 
     // One forced retry with an explicit “must change language” prompt
-    const retry = await provider.translate({
+    const retryRaw = await provider.translate({
       text: input.text,
       sourceLanguage: input.sourceLanguage,
       targetLanguage: targetLabel,
       style: input.style,
-      systemPrompt: strongTranslateSystemPrompt(
-        input.targetLanguage,
-        input.style,
-      ),
+      systemPrompt: usesJsonEnvelope
+        ? strongTranslateSystemPrompt(input.targetLanguage, input.style)
+        : input.systemPrompt,
       signal: input.signal,
     });
+    const retry = usesJsonEnvelope
+      ? parseTranslateModelOutput(retryRaw.text, input.text)
+      : {
+          text: retryRaw.text,
+          detectedSourceLanguage:
+            retryRaw.detectedSourceLanguage ??
+            first.detectedSourceLanguage ??
+            guessSourceLanguage(input.text),
+        };
 
     if (looksUntranslated(input.text, retry.text, input.targetLanguage)) {
       throw new Error("TRANSLATION_UNCHANGED");
@@ -68,9 +85,9 @@ export class AITranslator implements Translator {
       text: retry.text,
       detectedSourceLanguage:
         retry.detectedSourceLanguage ?? first.detectedSourceLanguage,
-      model: retry.model ?? first.model,
+      model: retryRaw.model ?? firstRaw.model,
       style: input.style,
-      durationMs: first.durationMs + retry.durationMs,
+      durationMs: firstRaw.durationMs + retryRaw.durationMs,
     };
   }
 }

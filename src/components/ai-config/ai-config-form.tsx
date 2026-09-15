@@ -15,7 +15,11 @@ import { Select } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/page-container";
 import { CustomPromptEditor } from "@/components/translator/custom-prompt-editor";
 import { mapProviderError } from "@/lib/i18n/map-provider-error";
-import { maskApiKey } from "@/lib/security/ai-config-storage";
+import {
+  isSafeBaseUrl,
+  maskApiKey,
+  validateAIConfig,
+} from "@/lib/security/ai-config-storage";
 import { useAppStore } from "@/stores/app";
 import type { AiProviderId } from "@/types/translation";
 
@@ -83,7 +87,7 @@ export function AiConfigForm() {
         throw new Error(t("saveIncomplete"));
       }
       if (provider === "compatible" && !baseUrl.trim()) {
-        throw new Error(t("saveIncomplete"));
+        throw new Error("AI_BASE_URL_MISSING");
       }
       const config = {
         provider,
@@ -91,6 +95,7 @@ export function AiConfigForm() {
         apiKey: nextKey,
         baseUrl: provider === "compatible" ? baseUrl.trim() : undefined,
       };
+      if (!validateAIConfig(config)) throw new Error("AI_CONFIG_INVALID");
       const p = createAIProvider(config);
       const ok = await p.testConnection();
       if (!ok) throw new Error(t("statusFailed"));
@@ -117,21 +122,30 @@ export function AiConfigForm() {
         return;
       }
       if (provider === "compatible" && !baseUrl.trim()) {
-        flash("error", t("saveIncomplete"));
+        flash("error", t("baseUrlMissing"));
+        return;
+      }
+      if (baseUrl.trim() && !isSafeBaseUrl(baseUrl.trim())) {
+        flash("error", t("baseUrlInvalid"));
         return;
       }
 
       setModel(nextModel);
       setKeyPreview(maskApiKey(nextKey));
 
-      await setAiConfig({
+      const config = {
         provider,
         model: nextModel,
         apiKey: nextKey,
         baseUrl: provider === "compatible" ? baseUrl.trim() : undefined,
         lastTestAt: aiConfig?.lastTestAt,
         lastTestOk: aiConfig?.lastTestOk,
-      });
+      };
+      if (!validateAIConfig(config)) {
+        flash("error", t("configInvalid"));
+        return;
+      }
+      await setAiConfig(config);
 
       flash("ok", t("saveSuccess"));
     } catch {

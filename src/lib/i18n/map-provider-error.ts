@@ -48,6 +48,10 @@ export function mapProviderError(
       return t("providerEmpty", { provider: parts[0] ?? "AI" });
     case "COMPATIBLE_BASE_URL_MISSING":
       return t("compatibleBaseUrlMissing");
+    case "AI_BASE_URL_MISSING":
+      return t("compatibleBaseUrlMissing");
+    case "AI_CONFIG_INVALID":
+      return t("configInvalid");
     default:
       return t("providerGeneric");
   }

@@ -7,6 +7,7 @@ export type AiProviderId =
 
 export type TranslationStyle =
   | "default"
+  | "custom"
   | "natural"
   | "casual"
   | "business"
@@ -17,6 +18,7 @@ export type TranslationStyle =
 
 export const TRANSLATION_STYLES: TranslationStyle[] = [
   "default",
+  "custom",
   "natural",
   "casual",
   "business",

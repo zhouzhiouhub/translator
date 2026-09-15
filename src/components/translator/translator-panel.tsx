@@ -40,6 +40,7 @@ type TranslatorTab = "text" | "document";
 function styleMessageKey(style: TranslationStyle) {
   return `style${style.charAt(0).toUpperCase()}${style.slice(1)}` as
     | "styleDefault"
+    | "styleCustom"
     | "styleNatural"
     | "styleCasual"
     | "styleBusiness"
@@ -130,7 +131,7 @@ export function TranslatorPanel() {
         text: inputText,
         targetLanguages,
         style,
-        customPrompt: customPrompt.trim() || undefined,
+        customPrompt: style === "custom" ? customPrompt.trim() || undefined : undefined,
         aiConfig,
         signal: ac.signal,
         onProgress: setProgress,
@@ -349,18 +350,20 @@ export function TranslatorPanel() {
                     ))}
                   </Select>
                   <p className="text-[11px] leading-relaxed text-muted">
-                    {customPrompt.trim()
-                      ? t("customPromptActiveHint")
-                      : t.rich("customPromptHintLink", {
-                          link: (chunks) => (
-                            <a
-                              href={`/${routeLocale}/settings/ai`}
-                              className="font-medium text-primary underline-offset-2 hover:underline"
-                            >
-                              {chunks}
-                            </a>
-                          ),
-                        })}
+                    {style === "custom"
+                      ? customPrompt.trim()
+                        ? t("customPromptActiveHint")
+                        : t.rich("customPromptHintLink", {
+                            link: (chunks) => (
+                              <a
+                                href={`/${routeLocale}/settings/ai`}
+                                className="font-medium text-primary underline-offset-2 hover:underline"
+                              >
+                                {chunks}
+                              </a>
+                            ),
+                          })
+                      : null}
                   </p>
                 </div>
                 <label className="flex items-start gap-2 text-xs text-muted">

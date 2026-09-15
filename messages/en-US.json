@@ -35,6 +35,7 @@
     "sourceLanguage": "Source language",
     "style": "Style",
     "styleDefault": "Default",
+    "styleCustom": "Custom",
     "styleNatural": "Natural",
     "styleCasual": "Casual",
     "styleBusiness": "Business",
@@ -44,13 +45,13 @@
     "styleLocalized": "Localized",
     "customPromptLabel": "Custom prompt",
     "customPromptPlaceholder": "e.g. Concise spoken tone, keep English tech terms, friendly voice…",
-    "customPromptHint": "When set, this fully replaces the default Prompt.txt rules. Leave empty to use the defaults. Click Save prompt to store it on this device.",
+    "customPromptHint": "When saved, translation follows your prompt only. Leave empty for a simple accurate translation (no default Prompt.txt, no style).",
     "customPromptCount": "{count} / {max}",
     "customPromptSave": "Save prompt",
     "customPromptSaved": "Saved",
     "customPromptUnsaved": "Unsaved changes",
-    "customPromptHintLink": "Optional: add a custom prompt in <link>AI Config</link>",
-    "customPromptActiveHint": "Custom prompt is on (replaces default rules)",
+    "customPromptHintLink": "No custom prompt yet — will translate simply and accurately. Add one in <link>AI Config</link>",
+    "customPromptActiveHint": "Using the custom prompt saved in AI Config",
     "followUi": "Switch the whole UI to the target language",
     "emptyInput": "Please enter text to translate",
     "resultTarget": "Translation",
@@ -136,7 +137,7 @@
     "modelPlaceholderCompatible": "model id supported by your gateway",
     "baseUrlPlaceholder": "https://api.example.com/v1",
     "customPromptSectionTitle": "Custom prompt",
-    "customPromptSectionDesc": "When saved, this fully replaces the default Prompt.txt rules. Leave empty for ordinary default translation."
+    "customPromptSectionDesc": "Used when translation style is Custom. If filled, follows your prompt only; if empty, simple accurate translation."
   },
   "aiGate": {
     "title": "AI is not configured yet",

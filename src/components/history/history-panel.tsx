@@ -24,6 +24,7 @@ import type {
 
 const STYLE_KEYS = [
   "default",
+  "custom",
   "natural",
   "casual",
   "business",
@@ -42,6 +43,7 @@ type HistoryGroup =
 function styleLabelKey(style: TranslationStyle) {
   return `style${style.charAt(0).toUpperCase()}${style.slice(1)}` as
     | "styleDefault"
+    | "styleCustom"
     | "styleNatural"
     | "styleCasual"
     | "styleBusiness"

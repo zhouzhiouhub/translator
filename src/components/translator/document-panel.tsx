@@ -33,6 +33,7 @@ import { TRANSLATION_STYLES } from "@/types/translation";
 function styleMessageKey(style: TranslationStyle) {
   return `style${style.charAt(0).toUpperCase()}${style.slice(1)}` as
     | "styleDefault"
+    | "styleCustom"
     | "styleNatural"
     | "styleCasual"
     | "styleBusiness"
@@ -126,7 +127,7 @@ export function DocumentPanel({
         file,
         targetLanguages,
         style,
-        customPrompt: customPrompt.trim() || undefined,
+        customPrompt: style === "custom" ? customPrompt.trim() || undefined : undefined,
         aiConfig,
         signal: ac.signal,
         onProgress: setProgress,
@@ -365,18 +366,20 @@ export function DocumentPanel({
                 ))}
               </Select>
               <p className="text-[11px] leading-relaxed text-muted">
-                {customPrompt.trim()
-                  ? tTranslator("customPromptActiveHint")
-                  : tTranslator.rich("customPromptHintLink", {
-                      link: (chunks) => (
-                        <a
-                          href={`/${routeLocale}/settings/ai`}
-                          className="font-medium text-primary underline-offset-2 hover:underline"
-                        >
-                          {chunks}
-                        </a>
-                      ),
-                    })}
+                {style === "custom"
+                  ? customPrompt.trim()
+                    ? tTranslator("customPromptActiveHint")
+                    : tTranslator.rich("customPromptHintLink", {
+                        link: (chunks) => (
+                          <a
+                            href={`/${routeLocale}/settings/ai`}
+                            className="font-medium text-primary underline-offset-2 hover:underline"
+                          >
+                            {chunks}
+                          </a>
+                        ),
+                      })
+                  : null}
               </p>
             </div>
           </div>

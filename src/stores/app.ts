@@ -108,10 +108,10 @@ export const useAppStore = create<AppState>()(
         sourceLanguage: state.sourceLanguage,
         targetLanguage: state.targetLanguage,
         targetLanguages: state.targetLanguages,
-        style: state.style,
-        customPrompt: state.customPrompt,
-        followUiToTarget: state.followUiToTarget,
-        // never persist apiKey here — kept in dedicated storage module
+          style: state.style,
+          customPrompt: state.customPrompt,
+          followUiToTarget: state.followUiToTarget,
+          // never persist apiKey here — kept in dedicated storage module
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<AppState>;
@@ -125,10 +125,6 @@ export const useAppStore = create<AppState>()(
           ...p,
           targetLanguages,
           targetLanguage: targetLanguages[0] ?? current.targetLanguage,
-          style:
-            p.style === ("custom" as TranslationStyle)
-              ? "default"
-              : (p.style ?? current.style),
           customPrompt:
             typeof p.customPrompt === "string"
               ? p.customPrompt.slice(0, MAX_CUSTOM_PROMPT_CHARS)

@@ -37,29 +37,28 @@ describe("translation quality", () => {
     assert.equal(looksUntranslated(source, "你好世界", "zh-TW"), false);
   });
 
-  it("embeds Prompt.txt core rules in the default system prompt", () => {
-    const prompt = defaultTranslateSystemPrompt("en", "business");
-    assert.match(prompt, /Prompt\.txt/);
-    assert.match(prompt, /Accuracy first/);
-    assert.match(prompt, /business/);
+  it("uses a simple accurate prompt when custom style has empty prompt", () => {
+    const prompt = defaultTranslateSystemPrompt("en", "custom", "   ");
+    assert.doesNotMatch(prompt, /Prompt\.txt/);
+    assert.doesNotMatch(prompt, /business/);
+    assert.match(prompt, /accurately/i);
     assert.match(prompt, /detectedSourceLanguage/);
   });
 
-  it("replaces Prompt.txt defaults when custom prompt is set", () => {
+  it("uses user prompt when style is custom", () => {
     const prompt = defaultTranslateSystemPrompt(
       "en",
-      "business",
+      "custom",
       "Keep tech terms in English; witty tone.",
     );
-    assert.doesNotMatch(prompt, /Accuracy first/);
     assert.match(prompt, /Keep tech terms in English/);
+    assert.doesNotMatch(prompt, /business/);
     assert.match(prompt, /detectedSourceLanguage/);
   });
 
-  it("uses Prompt.txt defaults when custom prompt is empty", () => {
-    const prompt = defaultTranslateSystemPrompt("en", "default", "   ");
-    assert.match(prompt, /Prompt\.txt/);
-    assert.match(prompt, /Accuracy first/);
+  it("applies preset style without custom prompt body", () => {
+    const prompt = defaultTranslateSystemPrompt("en", "business");
+    assert.match(prompt, /business/i);
     assert.doesNotMatch(prompt, /Keep tech terms/);
   });
 

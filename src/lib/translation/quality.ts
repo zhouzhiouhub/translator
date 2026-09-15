@@ -1,20 +1,13 @@
 import { getLanguage, languageLabel } from "@/i18n/languages";
 
 /**
- * Distilled from repo-root `Prompt.txt` (product quality rules).
- * Keep prompts compact for BYOK cost/latency; full narrative stays in Prompt.txt.
+ * Translation system prompts.
+ * - style `custom` + saved prompt → user prompt only (no Prompt.txt).
+ * - style `custom` + empty prompt → simple accurate translation.
+ * - other styles → simple accurate + style mode (no Prompt.txt).
+ * Full narrative rules remain in repo-root `Prompt.txt` for product reference.
  */
-export const TRANSLATION_PROMPT_VERSION = "prompt.txt-v1-distilled";
-
-const CORE_RULES = `Core rules (Kinolin Translator / Prompt.txt):
-- Accuracy first: keep facts, negation, modality, causality, quantities, units. Never invent or drop meaning.
-- Natural phrasing for native readers — not word-for-word calque — without changing degree or intent.
-- Preserve tone/register (formal, casual, business, technical, academic, humorous, etc.) unless a style override is given.
-- Terminology: use standard domain terms; keep product/tech names (React, Next.js, API, HTTP…) and official brand names; do not invent brand translations.
-- Never translate: source code, identifiers, URLs, emails, file paths, config keys. Translate only natural-language parts (comments, docs, UI copy).
-- Preserve numbers, dates, currency amounts/symbols, Markdown/HTML structure, lists, tables, code fences, and emoji.
-- Prefer retaining ambiguity when the source is ambiguous; do not invent gender/roles/relations.
-- Priority: accuracy > completeness > context fit > naturalness > style polish.`;
+export const TRANSLATION_PROMPT_VERSION = "simple-or-custom-v2";
 
 /** Full label for AI prompts — codes alone (e.g. `th`) are often ignored by models. */
 export function formatTargetLanguageForPrompt(code: string): string {
@@ -25,7 +18,7 @@ export function formatTargetLanguageForPrompt(code: string): string {
 
 function styleDirective(style?: string): string {
   if (!style || style === "default" || style === "custom") {
-    return "Mode: ordinary — natural, accurate translation only.";
+    return "";
   }
   const map: Record<string, string> = {
     natural: "Mode: natural — fluent native phrasing.",
@@ -37,7 +30,8 @@ function styleDirective(style?: string): string {
     localized:
       "Mode: localization — sound native to product/UI readers in the target locale.",
   };
-  return map[style] ?? `Mode: ${style}.`;
+  const line = map[style] ?? `Mode: ${style}.`;
+  return `${line}\n`;
 }
 
 const JSON_OUTPUT_RULE = `Output format (mandatory):
@@ -45,10 +39,28 @@ Return ONLY valid JSON (no markdown fences, no preface):
 {"detectedSourceLanguage":"<BCP-47-like code from catalog, e.g. zh-CN, en, ja>","translation":"<translated text only>"}
 Detect the source language of the user text. The translation field must be entirely in the target language.`;
 
-/** When set, replaces Prompt.txt defaults entirely (does not stack). */
 function normalizedCustomPrompt(customPrompt?: string): string | undefined {
   const instructions = customPrompt?.trim();
   return instructions || undefined;
+}
+
+function simpleAccuratePrompt(targetLabel: string, style?: string): string {
+  const mode = styleDirective(style);
+  return `You are a translator. Translate the user text into ${targetLabel} accurately.
+Preserve meaning; do not add explanations.
+${mode}Output only the required JSON.
+
+${JSON_OUTPUT_RULE}`;
+}
+
+function simpleAccurateDocumentPrompt(
+  targetLabel: string,
+  style?: string,
+): string {
+  const mode = styleDirective(style);
+  return `You are a translator. Translate this document segment into ${targetLabel} accurately.
+Preserve meaning and basic structure; do not add explanations.
+${mode}Output ONLY the translated segment — plain text, no JSON, no preface.`;
 }
 
 export function defaultTranslateSystemPrompt(
@@ -57,7 +69,8 @@ export function defaultTranslateSystemPrompt(
   customPrompt?: string,
 ): string {
   const label = formatTargetLanguageForPrompt(targetCode);
-  const custom = normalizedCustomPrompt(customPrompt);
+  const custom =
+    style === "custom" ? normalizedCustomPrompt(customPrompt) : undefined;
 
   if (custom) {
     return `You are Kinolin Translator.
@@ -65,19 +78,15 @@ export function defaultTranslateSystemPrompt(
 ${custom}
 
 Translate into: ${label}.
-${styleDirective(style)}
 
 ${JSON_OUTPUT_RULE}`;
   }
 
-  return `You are Kinolin Translator, a professional AI translation agent.
-
-${CORE_RULES}
-
-${styleDirective(style)}
-Translate into: ${label}.
-
-${JSON_OUTPUT_RULE}`;
+  // custom style with empty prompt, or any preset style → simple accurate
+  return simpleAccuratePrompt(
+    label,
+    style === "custom" ? undefined : style,
+  );
 }
 
 export function strongTranslateSystemPrompt(
@@ -86,7 +95,8 @@ export function strongTranslateSystemPrompt(
   customPrompt?: string,
 ): string {
   const label = formatTargetLanguageForPrompt(targetCode);
-  const custom = normalizedCustomPrompt(customPrompt);
+  const custom =
+    style === "custom" ? normalizedCustomPrompt(customPrompt) : undefined;
 
   if (custom) {
     return `You are Kinolin Translator.
@@ -95,17 +105,15 @@ ${custom}
 
 Translate the user text into ${label}.
 You MUST write the translation field ONLY in the target language — never leave source-language wording unchanged.
-${styleDirective(style)}
 
 ${JSON_OUTPUT_RULE}`;
   }
 
-  return `You are Kinolin Translator. ${styleDirective(style)}
-Translate the user text into ${label}.
+  const mode = style === "custom" ? "" : styleDirective(style);
+  return `You are a translator. Translate the user text into ${label} accurately.
 You MUST write the translation field ONLY in the target language — never leave source-language wording unchanged.
-Do not copy Chinese (or other source) characters when the target is a different language.
-Preserve Markdown structure, lists, and code fences; do not translate code.
-
+Do not add explanations.
+${mode}
 ${JSON_OUTPUT_RULE}`;
 }
 
@@ -115,26 +123,21 @@ export function documentTranslateSystemPrompt(
   customPrompt?: string,
 ): string {
   const label = formatTargetLanguageForPrompt(targetCode);
-  const custom = normalizedCustomPrompt(customPrompt);
+  const custom =
+    style === "custom" ? normalizedCustomPrompt(customPrompt) : undefined;
 
   if (custom) {
     return `You are Kinolin Translator translating a document segment into ${label}.
 
 ${custom}
 
-${styleDirective(style)}
 Output ONLY the translated segment — plain text, no JSON, no preface.`;
   }
 
-  return `You are Kinolin Translator translating a document segment into ${label}.
-
-${CORE_RULES}
-
-${styleDirective(style)}
-Preserve Markdown structure, headings, lists, links, and inline formatting.
-Do NOT translate fenced code blocks or inline code; keep them verbatim.
-You MUST write the output in the target language — do not leave source-language text unchanged.
-Output ONLY the translated segment — plain text, no JSON, no preface.`;
+  return simpleAccurateDocumentPrompt(
+    label,
+    style === "custom" ? undefined : style,
+  );
 }
 
 function normalizeComparable(text: string): string {

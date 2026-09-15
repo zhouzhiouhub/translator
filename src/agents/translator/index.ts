@@ -1,5 +1,6 @@
 import type { AIConfig, TranslateInput, TranslateResult } from "@/types/translation";
 import { isAbortError, throwIfAborted } from "@/lib/abort";
+import { createConcurrencyLimiter } from "@/lib/concurrency";
 import { AITranslator } from "@/translation/ai/AITranslator";
 
 export interface TranslateOrchestrationInput extends TranslateInput {
@@ -70,7 +71,7 @@ export async function runTranslation(
   return translator.translate(input);
 }
 
-/** One source text → multiple target languages (sequential). */
+/** One source text -> multiple target languages with a shared request limit. */
 export async function runBatchTranslation(input: {
   text: string;
   targetLanguages: string[];
@@ -95,42 +96,51 @@ export async function runBatchTranslation(input: {
   }
 
   const started = Date.now();
-  const results: BatchTranslateResultItem[] = [];
+  const results: (BatchTranslateResultItem | undefined)[] = [];
+  const limiter = createConcurrencyLimiter();
+  const jobs = uniqueTargets.map((targetLanguage, i) =>
+    (async () => {
+      const one = await limiter.run(
+        () => {
+          input.onProgress?.({
+            current: i + 1,
+            total: uniqueTargets.length,
+            targetLanguage,
+          });
+          return runTranslation({
+            text: input.text,
+            targetLanguage,
+            style: input.style,
+            customPrompt: input.customPrompt,
+            sourceLanguage: input.sourceLanguage,
+            aiConfig: input.aiConfig,
+            signal: input.signal,
+          });
+        },
+        input.signal,
+      );
+      results[i] = { ...one, targetLanguage, status: "done" };
+    })(),
+  );
 
-  for (let i = 0; i < uniqueTargets.length; i++) {
-    const targetLanguage = uniqueTargets[i]!;
-    try {
-      throwIfAborted(input.signal);
-      input.onProgress?.({
-        current: i + 1,
-        total: uniqueTargets.length,
-        targetLanguage,
-      });
-      const one = await runTranslation({
-        text: input.text,
-        targetLanguage,
-        style: input.style,
-        customPrompt: input.customPrompt,
-        sourceLanguage: input.sourceLanguage,
-        aiConfig: input.aiConfig,
-        signal: input.signal,
-      });
-      results.push({ ...one, targetLanguage, status: "done" });
-    } catch (err) {
-      if (!isAbortError(err)) throw err;
-      for (let j = i; j < uniqueTargets.length; j++) {
-        results.push(pendingBatchItem(uniqueTargets[j]!, input.style));
-      }
-      return {
-        results,
-        durationMs: Date.now() - started,
-        cancelled: true,
-      };
-    }
+  const settled = await Promise.allSettled(jobs);
+  const failed = settled.find(
+    (item): item is PromiseRejectedResult => item.status === "rejected",
+  );
+  if (failed && !isAbortError(failed.reason)) throw failed.reason;
+  if (failed) {
+    return {
+      results: uniqueTargets.map(
+        (targetLanguage, i) =>
+          results[i] ?? pendingBatchItem(targetLanguage, input.style),
+      ),
+      durationMs: Date.now() - started,
+      cancelled: true,
+    };
   }
 
   return {
-    results,
+    results: results as BatchTranslateResultItem[],
     durationMs: Date.now() - started,
   };
 }

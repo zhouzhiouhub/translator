@@ -4,6 +4,7 @@ import {
   type BatchItemStatus,
 } from "@/agents/translator";
 import { isAbortError, throwIfAborted } from "@/lib/abort";
+import { createConcurrencyLimiter, type ConcurrencyLimiter } from "@/lib/concurrency";
 import { chunkDocumentText } from "@/lib/document/chunk";
 import { parseDocumentFile } from "@/lib/document/parse";
 import type {
@@ -92,6 +93,7 @@ async function translateParsedDocument(options: {
   languageTotal: number;
   signal?: AbortSignal;
   onProgress?: (progress: DocumentTranslateProgress) => void;
+  limiter: ConcurrencyLimiter;
 }): Promise<DocumentTranslateResult> {
   const {
     parsed,
@@ -112,42 +114,53 @@ async function translateParsedDocument(options: {
     customPrompt,
   );
   const started = Date.now();
-  const translatedParts: string[] = [];
-  let detectedSourceLanguage: string | undefined =
-    guessSourceLanguage(parsed.text);
-  let model: string | undefined;
+  const translatedParts: string[] = new Array(chunks.length);
+  const chunkResults = await Promise.all(
+    chunks.map(async (chunk, i) => {
+      if (/^(`{3,}|~{3,})/.test(chunk.text.trim())) {
+        throwIfAborted(signal);
+        onProgress?.({
+          phase: "translating",
+          current: i + 1,
+          total: chunks.length,
+          languageIndex,
+          languageTotal,
+          targetLanguage,
+        });
+        translatedParts[i] = chunk.text;
+        return undefined;
+      }
 
-  for (let i = 0; i < chunks.length; i++) {
-    throwIfAborted(signal);
-    onProgress?.({
-      phase: "translating",
-      current: i + 1,
-      total: chunks.length,
-      languageIndex,
-      languageTotal,
-      targetLanguage,
-    });
-
-    const chunk = chunks[i]!;
-    if (/^(`{3,}|~{3,})/.test(chunk.text.trim())) {
-      translatedParts.push(chunk.text);
-      continue;
-    }
-
-    const result = await runTranslation({
-      text: chunk.text,
-      targetLanguage,
-      style,
-      customPrompt,
-      aiConfig,
-      systemPrompt,
-      signal,
-    });
-
-    translatedParts.push(result.text);
-    detectedSourceLanguage ??= result.detectedSourceLanguage;
-    model ??= result.model;
-  }
+      const result = await options.limiter.run(
+        () => {
+          onProgress?.({
+            phase: "translating",
+            current: i + 1,
+            total: chunks.length,
+            languageIndex,
+            languageTotal,
+            targetLanguage,
+          });
+          return runTranslation({
+            text: chunk.text,
+            targetLanguage,
+            style,
+            customPrompt,
+            aiConfig,
+            systemPrompt,
+            signal,
+          });
+        },
+        signal,
+      );
+      translatedParts[i] = result.text;
+      return result;
+    }),
+  );
+  const detectedSourceLanguage =
+    chunkResults.find((result) => result?.detectedSourceLanguage)
+      ?.detectedSourceLanguage ?? guessSourceLanguage(parsed.text);
+  const model = chunkResults.find((result) => result?.model)?.model;
 
   return {
     parsed,
@@ -185,6 +198,7 @@ export async function runBatchDocumentTranslation(
   if (!check.ok || !input.aiConfig) {
     throw new Error("AI_NOT_CONFIGURED");
   }
+  const aiConfig = input.aiConfig;
 
   const uniqueTargets = [
     ...new Set(input.targetLanguages.map((c) => c.trim()).filter(Boolean)),
@@ -202,44 +216,47 @@ export async function runBatchDocumentTranslation(
   }
 
   const started = Date.now();
-  const results: DocumentTranslateResult[] = [];
-
-  for (let li = 0; li < uniqueTargets.length; li++) {
-    const targetLanguage = uniqueTargets[li]!;
-    try {
-      throwIfAborted(input.signal);
+  const results: (DocumentTranslateResult | undefined)[] = [];
+  const limiter = createConcurrencyLimiter();
+  const jobs = uniqueTargets.map((targetLanguage, li) =>
+    (async () => {
       const one = await translateParsedDocument({
         parsed,
         chunks,
         targetLanguage,
         style: input.style,
         customPrompt: input.customPrompt,
-        aiConfig: input.aiConfig,
+        aiConfig,
         languageIndex: li + 1,
         languageTotal: uniqueTargets.length,
         signal: input.signal,
         onProgress: input.onProgress,
+        limiter,
       });
-      results.push(one);
-    } catch (err) {
-      if (!isAbortError(err)) throw err;
-      for (let j = li; j < uniqueTargets.length; j++) {
-        results.push(
+      results[li] = one;
+    })(),
+  );
+  const settled = await Promise.allSettled(jobs);
+  const failed = settled.find(
+    (item): item is PromiseRejectedResult => item.status === "rejected",
+  );
+  if (failed && !isAbortError(failed.reason)) throw failed.reason;
+  if (failed) {
+    return {
+      parsed,
+      results: uniqueTargets.map(
+        (targetLanguage, i) =>
+          results[i] ??
           pendingDocumentResult(
             parsed,
-            uniqueTargets[j]!,
+            targetLanguage,
             chunks.length,
             input.style,
           ),
-        );
-      }
-      return {
-        parsed,
-        results,
-        durationMs: Date.now() - started,
-        cancelled: true,
-      };
-    }
+      ),
+      durationMs: Date.now() - started,
+      cancelled: true,
+    };
   }
 
   input.onProgress?.({
@@ -252,7 +269,7 @@ export async function runBatchDocumentTranslation(
 
   return {
     parsed,
-    results,
+    results: results as DocumentTranslateResult[],
     durationMs: Date.now() - started,
   };
 }

@@ -43,7 +43,7 @@ export function SearchableSelect({
   disabled = false,
   placeholder = "Select…",
   searchPlaceholder = "Search…",
-  emptyText = "No matches",
+  emptyText = "",
   className,
   triggerClassName,
   leading,

@@ -36,14 +36,15 @@ async function openAiCompatibleTranslate(
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`AI provider error ${res.status}: ${body.slice(0, 200)}`);
+    const snippet = body.replace(/\s+/g, " ").slice(0, 200).replace(/\|/g, "/");
+    throw new Error(`PROVIDER_HTTP|AI|${res.status}|${snippet}`);
   }
 
   const data = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
   };
   const text = data.choices?.[0]?.message?.content?.trim() ?? "";
-  if (!text) throw new Error("Empty AI translation response");
+  if (!text) throw new Error("PROVIDER_EMPTY|AI");
 
   return {
     text,

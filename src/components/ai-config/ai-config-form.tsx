@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/page-container";
 import { CustomPromptEditor } from "@/components/translator/custom-prompt-editor";
+import { mapProviderError } from "@/lib/i18n/map-provider-error";
 import { maskApiKey } from "@/lib/security/ai-config-storage";
 import { useAppStore } from "@/stores/app";
 import type { AiProviderId } from "@/types/translation";
@@ -101,7 +102,8 @@ export function AiConfigForm() {
       return true;
     },
     onSuccess: () => flash("ok", t("testSuccess")),
-    onError: (err: Error) => flash("error", err.message || t("statusFailed")),
+    onError: (err: Error) =>
+      flash("error", mapProviderError(err.message, t) || t("statusFailed")),
   });
 
   async function onSave() {
@@ -132,12 +134,8 @@ export function AiConfigForm() {
       });
 
       flash("ok", t("saveSuccess"));
-    } catch (err) {
-      const text =
-        err instanceof Error && err.message
-          ? err.message
-          : "保存失败，请检查浏览器是否禁用了本地存储";
-      flash("error", text);
+    } catch {
+      flash("error", t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -251,7 +249,7 @@ export function AiConfigForm() {
                 variant="secondary"
                 onClick={() => setShowKey((v) => !v)}
               >
-                {showKey ? "Hide" : "Show"}
+                {showKey ? t("hideKey") : t("showKey")}
               </Button>
             </div>
             {keyPreview ? (

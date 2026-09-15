@@ -55,14 +55,15 @@ export class ClaudeProvider implements AIProvider {
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(`Claude error ${res.status}: ${body.slice(0, 200)}`);
+      const snippet = body.replace(/\s+/g, " ").slice(0, 200).replace(/\|/g, "/");
+      throw new Error(`PROVIDER_HTTP|Claude|${res.status}|${snippet}`);
     }
 
     const data = (await res.json()) as {
       content?: { type: string; text?: string }[];
     };
     const text = data.content?.find((c) => c.type === "text")?.text?.trim() ?? "";
-    if (!text) throw new Error("Empty Claude translation response");
+    if (!text) throw new Error("PROVIDER_EMPTY|Claude");
 
     return {
       text,

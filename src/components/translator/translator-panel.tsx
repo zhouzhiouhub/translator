@@ -24,6 +24,7 @@ import {
   historyDownloadFileName,
 } from "@/lib/document/export";
 import { isAbortError } from "@/lib/abort";
+import { mapProviderError } from "@/lib/i18n/map-provider-error";
 import { useAppStore } from "@/stores/app";
 import { createBatchId, useHistoryStore } from "@/stores/history";
 import { useUiLocaleStore } from "@/stores/ui-locale";
@@ -55,6 +56,7 @@ export function TranslatorPanel() {
   const tDoc = useTranslations("document");
   const tGate = useTranslations("aiGate");
   const tCommon = useTranslations("common");
+  const tAi = useTranslations("aiConfig");
   const routeLocale = useRouteLocale();
   const router = useRouter();
   const langs = useLocalizedLanguageOptions();
@@ -228,7 +230,7 @@ export function TranslatorPanel() {
         showToast(t("errorUnchanged"));
         return;
       }
-      setToast(err.message);
+      showToast(mapProviderError(err.message, tAi));
     },
   });
 

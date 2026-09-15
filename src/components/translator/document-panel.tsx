@@ -12,6 +12,7 @@ import {
   type DocumentTranslateResult,
 } from "@/agents/document";
 import { isAbortError } from "@/lib/abort";
+import { mapProviderError } from "@/lib/i18n/map-provider-error";
 import { acceptAttribute, translatedFileName } from "@/lib/document/detect";
 import { downloadTextFile } from "@/lib/document/export";
 import {
@@ -58,6 +59,7 @@ export function DocumentPanel({
   const tTranslator = useTranslations("translator");
   const tGate = useTranslations("aiGate");
   const tCommon = useTranslations("common");
+  const tAi = useTranslations("aiConfig");
   const routeLocale = useRouteLocale();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -190,7 +192,7 @@ export function DocumentPanel({
         setGateOpen(true);
         return;
       }
-      onToast(mapDocumentError(err.message, t));
+      onToast(mapDocumentError(err.message, t, tAi));
     },
   });
 
@@ -618,6 +620,7 @@ export function DocumentPanel({
 function mapDocumentError(
   code: string,
   t: ReturnType<typeof useTranslations<"document">>,
+  tAi: ReturnType<typeof useTranslations<"aiConfig">>,
 ): string {
   switch (code) {
     case "DOCUMENT_TOO_LARGE":
@@ -637,7 +640,7 @@ function mapDocumentError(
     case "TRANSLATION_UNCHANGED":
       return t("errorUnchanged");
     default:
-      return code;
+      return mapProviderError(code, tAi);
   }
 }
 

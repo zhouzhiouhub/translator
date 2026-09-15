@@ -28,7 +28,9 @@ export class GeminiProvider implements AIProvider {
 
     if (!listRes.ok) {
       const body = await listRes.text().catch(() => "");
-      throw new Error(formatGeminiError(listRes.status, body, this.config.model, "list"));
+      throw new Error(
+        formatGeminiError(listRes.status, body, this.config.model, "list"),
+      );
     }
 
     const list = (await listRes.json()) as {
@@ -45,9 +47,7 @@ export class GeminiProvider implements AIProvider {
 
     if (!matched) {
       const sample = names.slice(0, 6).join(", ") || "(empty)";
-      throw new Error(
-        `当前 Key 可用模型中没有「${wanted}」。可试用：${sample}`,
-      );
+      throw new Error(`GEMINI_MODEL_MISSING|${wanted}|${sample}`);
     }
 
     // 2) Tiny generate to confirm write path
@@ -105,7 +105,7 @@ export class GeminiProvider implements AIProvider {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
     };
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
-    if (!text) throw new Error("Empty Gemini translation response");
+    if (!text) throw new Error("GEMINI_EMPTY");
 
     return {
       text,
@@ -115,36 +115,22 @@ export class GeminiProvider implements AIProvider {
   }
 }
 
+/** Machine-readable codes for UI i18n (`mapProviderError`). */
 function formatGeminiError(
   status: number,
   body: string,
   model: string,
   phase: "list" | "generate",
 ): string {
-  const snippet = body.replace(/\s+/g, " ").slice(0, 180);
+  const snippet = body.replace(/\s+/g, " ").slice(0, 180).replace(/\|/g, "/");
 
   if (status === 404) {
-    return [
-      `Gemini 返回 404（${phase} / ${model}）。`,
-      "新 Key 请用 gemini-3.5-flash-lite / gemini-3.1-flash-lite / gemini-flash-lite-latest；",
-      "2.0/2.5 系列已不对新用户开放。",
-      "若仍失败再查网络或配额。",
-      snippet ? `详情：${snippet}` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+    return `GEMINI_HTTP_404|${phase}|${model}|${snippet}`;
   }
 
   if (status === 400 || status === 401 || status === 403) {
-    return [
-      `Gemini 鉴权/权限失败（${status}）。`,
-      "请到 Google AI Studio 新建 API Key，确认已启用 Gemini，",
-      "且 Key 未限制到其它域名（本机测试需允许 localhost）。",
-      snippet ? `详情：${snippet}` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+    return `GEMINI_HTTP_AUTH|${status}|${snippet}`;
   }
 
-  return `Gemini error ${status}${snippet ? `: ${snippet}` : ""}`;
+  return `GEMINI_HTTP|${status}|${snippet}`;
 }

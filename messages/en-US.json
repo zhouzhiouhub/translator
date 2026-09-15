@@ -42,6 +42,15 @@
     "styleTechnical": "Technical",
     "styleAcademic": "Academic",
     "styleLocalized": "Localized",
+    "customPromptLabel": "Custom prompt",
+    "customPromptPlaceholder": "e.g. Concise spoken tone, keep English tech terms, friendly voice…",
+    "customPromptHint": "When set, this fully replaces the default Prompt.txt rules. Leave empty to use the defaults. Click Save prompt to store it on this device.",
+    "customPromptCount": "{count} / {max}",
+    "customPromptSave": "Save prompt",
+    "customPromptSaved": "Saved",
+    "customPromptUnsaved": "Unsaved changes",
+    "customPromptHintLink": "Optional: add a custom prompt in <link>AI Config</link>",
+    "customPromptActiveHint": "Custom prompt is on (replaces default rules)",
     "followUi": "Switch the whole UI to the target language",
     "emptyInput": "Please enter text to translate",
     "resultTarget": "Translation",
@@ -125,7 +134,9 @@
     "modelPlaceholderGemini": "e.g. gemini-3.5-flash-lite",
     "modelPlaceholderDeepseek": "e.g. deepseek-chat",
     "modelPlaceholderCompatible": "model id supported by your gateway",
-    "baseUrlPlaceholder": "https://api.example.com/v1"
+    "baseUrlPlaceholder": "https://api.example.com/v1",
+    "customPromptSectionTitle": "Custom prompt",
+    "customPromptSectionDesc": "When saved, this fully replaces the default Prompt.txt rules. Leave empty for ordinary default translation."
   },
   "aiGate": {
     "title": "AI is not configured yet",

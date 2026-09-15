@@ -15,6 +15,20 @@ export type TranslationStyle =
   | "academic"
   | "localized";
 
+export const TRANSLATION_STYLES: TranslationStyle[] = [
+  "default",
+  "natural",
+  "casual",
+  "business",
+  "formal",
+  "technical",
+  "academic",
+  "localized",
+];
+
+/** Max length for user-defined style instructions (persisted locally). */
+export const MAX_CUSTOM_PROMPT_CHARS = 1500;
+
 export interface AIConfig {
   provider: AiProviderId;
   model: string;
@@ -29,6 +43,8 @@ export interface TranslateInput {
   sourceLanguage?: string;
   targetLanguage: string;
   style?: TranslationStyle;
+  /** Optional user system prompt; when set, replaces Prompt.txt defaults (does not stack). */
+  customPrompt?: string;
   /** Optional override for document / specialized translation. */
   systemPrompt?: string;
   signal?: AbortSignal;

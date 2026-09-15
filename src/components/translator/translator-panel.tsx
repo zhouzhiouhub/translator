@@ -33,19 +33,21 @@ import { mapTargetLangToUiLocale } from "@/i18n/ui-locales";
 import { setExplicitUiLocaleCookie } from "@/i18n/resolve-ui-locale";
 import { PageContainer } from "@/components/layout/page-container";
 import type { TranslationStyle } from "@/types/translation";
+import { TRANSLATION_STYLES } from "@/types/translation";
 
 type TranslatorTab = "text" | "document";
 
-const STYLES: TranslationStyle[] = [
-  "default",
-  "natural",
-  "casual",
-  "business",
-  "formal",
-  "technical",
-  "academic",
-  "localized",
-];
+function styleMessageKey(style: TranslationStyle) {
+  return `style${style.charAt(0).toUpperCase()}${style.slice(1)}` as
+    | "styleDefault"
+    | "styleNatural"
+    | "styleCasual"
+    | "styleBusiness"
+    | "styleFormal"
+    | "styleTechnical"
+    | "styleAcademic"
+    | "styleLocalized";
+}
 
 export function TranslatorPanel() {
   const t = useTranslations("translator");
@@ -74,6 +76,7 @@ export function TranslatorPanel() {
     setTargetLanguages,
     style,
     setStyle,
+    customPrompt,
     followUiToTarget,
     setFollowUiToTarget,
     setResult,
@@ -127,6 +130,7 @@ export function TranslatorPanel() {
         text: inputText,
         targetLanguages,
         style,
+        customPrompt: customPrompt.trim() || undefined,
         aiConfig,
         signal: ac.signal,
         onProgress: setProgress,
@@ -326,7 +330,7 @@ export function TranslatorPanel() {
             />
 
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <div className="flex min-w-[180px] flex-1 flex-col gap-3 sm:max-w-xs">
+              <div className="flex min-w-[180px] flex-1 flex-col gap-3 sm:max-w-md">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-muted">
                     {t("style")}
@@ -338,22 +342,26 @@ export function TranslatorPanel() {
                     }
                     disabled={mutation.isPending}
                   >
-                    {STYLES.map((s) => (
+                    {TRANSLATION_STYLES.map((s) => (
                       <option key={s} value={s}>
-                        {t(
-                          `style${s.charAt(0).toUpperCase()}${s.slice(1)}` as
-                            | "styleDefault"
-                            | "styleNatural"
-                            | "styleCasual"
-                            | "styleBusiness"
-                            | "styleFormal"
-                            | "styleTechnical"
-                            | "styleAcademic"
-                            | "styleLocalized",
-                        )}
+                        {t(styleMessageKey(s))}
                       </option>
                     ))}
                   </Select>
+                  <p className="text-[11px] leading-relaxed text-muted">
+                    {customPrompt.trim()
+                      ? t("customPromptActiveHint")
+                      : t.rich("customPromptHintLink", {
+                          link: (chunks) => (
+                            <a
+                              href={`/${routeLocale}/settings/ai`}
+                              className="font-medium text-primary underline-offset-2 hover:underline"
+                            >
+                              {chunks}
+                            </a>
+                          ),
+                        })}
+                  </p>
                 </div>
                 <label className="flex items-start gap-2 text-xs text-muted">
                   <input

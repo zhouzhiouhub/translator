@@ -42,6 +42,15 @@
     "styleTechnical": "技术",
     "styleAcademic": "学术",
     "styleLocalized": "本地化",
+    "customPromptLabel": "自定义提示语",
+    "customPromptPlaceholder": "例如：用简洁口语翻译，保留英文术语，语气轻松……",
+    "customPromptHint": "填写后将完全替代默认 Prompt.txt 规则；留空则使用默认做普通翻译。点击「保存提示语」写入本机。",
+    "customPromptCount": "{count} / {max}",
+    "customPromptSave": "保存提示语",
+    "customPromptSaved": "已保存",
+    "customPromptUnsaved": "有未保存的修改",
+    "customPromptHintLink": "可在<link>配置 AI</link>添加自定义提示语（可选）",
+    "customPromptActiveHint": "已启用自定义提示语（已替代默认规则）",
     "followUi": "用目标语言切换整个 UI",
     "emptyInput": "请输入需要翻译的内容",
     "resultTarget": "译文",
@@ -125,7 +134,9 @@
     "modelPlaceholderGemini": "例如 gemini-3.5-flash-lite",
     "modelPlaceholderDeepseek": "例如 deepseek-chat",
     "modelPlaceholderCompatible": "填写网关支持的 model id",
-    "baseUrlPlaceholder": "https://api.example.com/v1"
+    "baseUrlPlaceholder": "https://api.example.com/v1",
+    "customPromptSectionTitle": "自定义提示语",
+    "customPromptSectionDesc": "填写并保存后，将完全替代默认 Prompt.txt；留空则按默认做普通翻译。"
   },
   "aiGate": {
     "title": "AI 配置尚未完成",

@@ -20,6 +20,7 @@ export interface DocumentTranslateInput {
   file: File;
   targetLanguage: string;
   style?: TranslationStyle;
+  customPrompt?: string;
   aiConfig?: AIConfig | null;
   signal?: AbortSignal;
   onProgress?: (progress: DocumentTranslateProgress) => void;
@@ -42,6 +43,7 @@ export interface BatchDocumentTranslateInput {
   file: File;
   targetLanguages: string[];
   style?: TranslationStyle;
+  customPrompt?: string;
   aiConfig?: AIConfig | null;
   signal?: AbortSignal;
   onProgress?: (progress: DocumentTranslateProgress) => void;
@@ -74,8 +76,9 @@ function pendingDocumentResult(
 function documentSystemPrompt(
   targetLanguage: string,
   style?: TranslationStyle,
+  customPrompt?: string,
 ): string {
-  return documentTranslateSystemPrompt(targetLanguage, style);
+  return documentTranslateSystemPrompt(targetLanguage, style, customPrompt);
 }
 
 async function translateParsedDocument(options: {
@@ -83,6 +86,7 @@ async function translateParsedDocument(options: {
   chunks: ReturnType<typeof chunkDocumentText>;
   targetLanguage: string;
   style?: TranslationStyle;
+  customPrompt?: string;
   aiConfig: AIConfig;
   languageIndex: number;
   languageTotal: number;
@@ -94,6 +98,7 @@ async function translateParsedDocument(options: {
     chunks,
     targetLanguage,
     style,
+    customPrompt,
     aiConfig,
     languageIndex,
     languageTotal,
@@ -101,7 +106,11 @@ async function translateParsedDocument(options: {
     onProgress,
   } = options;
 
-  const systemPrompt = documentSystemPrompt(targetLanguage, style);
+  const systemPrompt = documentSystemPrompt(
+    targetLanguage,
+    style,
+    customPrompt,
+  );
   const started = Date.now();
   const translatedParts: string[] = [];
   let detectedSourceLanguage: string | undefined =
@@ -129,6 +138,7 @@ async function translateParsedDocument(options: {
       text: chunk.text,
       targetLanguage,
       style,
+      customPrompt,
       aiConfig,
       systemPrompt,
       signal,
@@ -159,6 +169,7 @@ export async function runDocumentTranslation(
     file: input.file,
     targetLanguages: [input.targetLanguage],
     style: input.style,
+    customPrompt: input.customPrompt,
     aiConfig: input.aiConfig,
     signal: input.signal,
     onProgress: input.onProgress,
@@ -202,6 +213,7 @@ export async function runBatchDocumentTranslation(
         chunks,
         targetLanguage,
         style: input.style,
+        customPrompt: input.customPrompt,
         aiConfig: input.aiConfig,
         languageIndex: li + 1,
         languageTotal: uniqueTargets.length,

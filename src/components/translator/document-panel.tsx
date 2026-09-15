@@ -28,17 +28,19 @@ import { createBatchId, useHistoryStore } from "@/stores/history";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
 import type { TranslationStyle } from "@/types/translation";
+import { TRANSLATION_STYLES } from "@/types/translation";
 
-const STYLES: TranslationStyle[] = [
-  "default",
-  "natural",
-  "casual",
-  "business",
-  "formal",
-  "technical",
-  "academic",
-  "localized",
-];
+function styleMessageKey(style: TranslationStyle) {
+  return `style${style.charAt(0).toUpperCase()}${style.slice(1)}` as
+    | "styleDefault"
+    | "styleNatural"
+    | "styleCasual"
+    | "styleBusiness"
+    | "styleFormal"
+    | "styleTechnical"
+    | "styleAcademic"
+    | "styleLocalized";
+}
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -77,6 +79,7 @@ export function DocumentPanel({
     setTargetLanguages,
     style,
     setStyle,
+    customPrompt,
     aiConfig,
   } = useAppStore();
   const addBatchEntries = useHistoryStore((s) => s.addBatchEntries);
@@ -123,6 +126,7 @@ export function DocumentPanel({
         file,
         targetLanguages,
         style,
+        customPrompt: customPrompt.trim() || undefined,
         aiConfig,
         signal: ac.signal,
         onProgress: setProgress,
@@ -344,31 +348,37 @@ export function DocumentPanel({
         />
 
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex min-w-[180px] flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted">
-              {tTranslator("style")}
-            </label>
-            <Select
-              value={style}
-              onChange={(e) => setStyle(e.target.value as TranslationStyle)}
-              disabled={mutation.isPending}
-            >
-              {STYLES.map((s) => (
-                <option key={s} value={s}>
-                  {tTranslator(
-                    `style${s.charAt(0).toUpperCase()}${s.slice(1)}` as
-                      | "styleDefault"
-                      | "styleNatural"
-                      | "styleCasual"
-                      | "styleBusiness"
-                      | "styleFormal"
-                      | "styleTechnical"
-                      | "styleAcademic"
-                      | "styleLocalized",
-                  )}
-                </option>
-              ))}
-            </Select>
+          <div className="flex min-w-[180px] flex-1 flex-col gap-3 sm:max-w-md">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted">
+                {tTranslator("style")}
+              </label>
+              <Select
+                value={style}
+                onChange={(e) => setStyle(e.target.value as TranslationStyle)}
+                disabled={mutation.isPending}
+              >
+                {TRANSLATION_STYLES.map((s) => (
+                  <option key={s} value={s}>
+                    {tTranslator(styleMessageKey(s))}
+                  </option>
+                ))}
+              </Select>
+              <p className="text-[11px] leading-relaxed text-muted">
+                {customPrompt.trim()
+                  ? tTranslator("customPromptActiveHint")
+                  : tTranslator.rich("customPromptHintLink", {
+                      link: (chunks) => (
+                        <a
+                          href={`/${routeLocale}/settings/ai`}
+                          className="font-medium text-primary underline-offset-2 hover:underline"
+                        >
+                          {chunks}
+                        </a>
+                      ),
+                    })}
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

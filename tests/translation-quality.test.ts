@@ -45,6 +45,24 @@ describe("translation quality", () => {
     assert.match(prompt, /detectedSourceLanguage/);
   });
 
+  it("replaces Prompt.txt defaults when custom prompt is set", () => {
+    const prompt = defaultTranslateSystemPrompt(
+      "en",
+      "business",
+      "Keep tech terms in English; witty tone.",
+    );
+    assert.doesNotMatch(prompt, /Accuracy first/);
+    assert.match(prompt, /Keep tech terms in English/);
+    assert.match(prompt, /detectedSourceLanguage/);
+  });
+
+  it("uses Prompt.txt defaults when custom prompt is empty", () => {
+    const prompt = defaultTranslateSystemPrompt("en", "default", "   ");
+    assert.match(prompt, /Prompt\.txt/);
+    assert.match(prompt, /Accuracy first/);
+    assert.doesNotMatch(prompt, /Keep tech terms/);
+  });
+
   it("guesses source language from script", () => {
     assert.equal(guessSourceLanguage("你好，世界"), "zh-CN");
     assert.equal(guessSourceLanguage("こんにちは"), "ja");

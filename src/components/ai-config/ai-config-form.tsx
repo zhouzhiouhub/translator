@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/page-container";
+import { CustomPromptEditor } from "@/components/translator/custom-prompt-editor";
 import { maskApiKey } from "@/lib/security/ai-config-storage";
 import { useAppStore } from "@/stores/app";
 import type { AiProviderId } from "@/types/translation";
@@ -28,7 +29,7 @@ const MODEL_PLACEHOLDER_KEYS = {
 export function AiConfigForm() {
   const t = useTranslations("aiConfig");
   const tCommon = useTranslations("common");
-  const { aiConfig, hydrateAiConfig, setAiConfig, clearAiKey, aiConfigured } =
+  const { aiConfig, hydrateAiConfig, setAiConfig, clearAiKey, aiConfigured, customPrompt, setCustomPrompt } =
     useAppStore();
 
   const [provider, setProvider] = useState<AiProviderId>("openai");
@@ -303,6 +304,19 @@ export function AiConfigForm() {
             </Button>
           </div>
         </form>
+      </section>
+
+      <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="text-base font-medium text-brand-ink">
+          {t("customPromptSectionTitle")}
+        </h2>
+        <p className="mt-1 text-sm text-muted">{t("customPromptSectionDesc")}</p>
+        <div className="mt-4">
+          <CustomPromptEditor
+            value={customPrompt}
+            onSave={setCustomPrompt}
+          />
+        </div>
       </section>
 
       <p className="text-sm text-muted">{t("byokNotice")}</p>

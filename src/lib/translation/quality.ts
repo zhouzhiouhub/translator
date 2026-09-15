@@ -24,7 +24,7 @@ export function formatTargetLanguageForPrompt(code: string): string {
 }
 
 function styleDirective(style?: string): string {
-  if (!style || style === "default") {
+  if (!style || style === "default" || style === "custom") {
     return "Mode: ordinary — natural, accurate translation only.";
   }
   const map: Record<string, string> = {
@@ -45,11 +45,31 @@ Return ONLY valid JSON (no markdown fences, no preface):
 {"detectedSourceLanguage":"<BCP-47-like code from catalog, e.g. zh-CN, en, ja>","translation":"<translated text only>"}
 Detect the source language of the user text. The translation field must be entirely in the target language.`;
 
+/** When set, replaces Prompt.txt defaults entirely (does not stack). */
+function normalizedCustomPrompt(customPrompt?: string): string | undefined {
+  const instructions = customPrompt?.trim();
+  return instructions || undefined;
+}
+
 export function defaultTranslateSystemPrompt(
   targetCode: string,
   style?: string,
+  customPrompt?: string,
 ): string {
   const label = formatTargetLanguageForPrompt(targetCode);
+  const custom = normalizedCustomPrompt(customPrompt);
+
+  if (custom) {
+    return `You are Kinolin Translator.
+
+${custom}
+
+Translate into: ${label}.
+${styleDirective(style)}
+
+${JSON_OUTPUT_RULE}`;
+  }
+
   return `You are Kinolin Translator, a professional AI translation agent.
 
 ${CORE_RULES}
@@ -63,9 +83,24 @@ ${JSON_OUTPUT_RULE}`;
 export function strongTranslateSystemPrompt(
   targetCode: string,
   style?: string,
+  customPrompt?: string,
 ): string {
   const label = formatTargetLanguageForPrompt(targetCode);
-  return `You are Kinolin Translator.${style ? ` ${styleDirective(style)}` : ""}
+  const custom = normalizedCustomPrompt(customPrompt);
+
+  if (custom) {
+    return `You are Kinolin Translator.
+
+${custom}
+
+Translate the user text into ${label}.
+You MUST write the translation field ONLY in the target language — never leave source-language wording unchanged.
+${styleDirective(style)}
+
+${JSON_OUTPUT_RULE}`;
+  }
+
+  return `You are Kinolin Translator. ${styleDirective(style)}
 Translate the user text into ${label}.
 You MUST write the translation field ONLY in the target language — never leave source-language wording unchanged.
 Do not copy Chinese (or other source) characters when the target is a different language.
@@ -77,8 +112,20 @@ ${JSON_OUTPUT_RULE}`;
 export function documentTranslateSystemPrompt(
   targetCode: string,
   style?: string,
+  customPrompt?: string,
 ): string {
   const label = formatTargetLanguageForPrompt(targetCode);
+  const custom = normalizedCustomPrompt(customPrompt);
+
+  if (custom) {
+    return `You are Kinolin Translator translating a document segment into ${label}.
+
+${custom}
+
+${styleDirective(style)}
+Output ONLY the translated segment — plain text, no JSON, no preface.`;
+  }
+
   return `You are Kinolin Translator translating a document segment into ${label}.
 
 ${CORE_RULES}
@@ -248,7 +295,7 @@ export function parseTranslateModelOutput(
 
   // Soft extract: {"translation":"..."} buried in prose
   const soft = cleaned.match(
-    /\{\s*"detectedSourceLanguage"\s*:\s*"([^"]*)"\s*,\s*"translation"\s*:\s*"((?:\\.|[^"\\])*)"\s*\}/s,
+    /\{\s*"detectedSourceLanguage"\s*:\s*"([^"]*)"\s*,\s*"translation"\s*:\s*"((?:\\.|[^"\\])*)"\s*\}/,
   );
   if (soft) {
     const unescaped = soft[2]!.replace(/\\n/g, "\n").replace(/\\"/g, '"');

@@ -75,6 +75,7 @@ export async function runBatchTranslation(input: {
   text: string;
   targetLanguages: string[];
   style?: TranslateInput["style"];
+  customPrompt?: string;
   sourceLanguage?: string;
   aiConfig?: AIConfig | null;
   signal?: AbortSignal;
@@ -109,6 +110,7 @@ export async function runBatchTranslation(input: {
         text: input.text,
         targetLanguage,
         style: input.style,
+        customPrompt: input.customPrompt,
         sourceLanguage: input.sourceLanguage,
         aiConfig: input.aiConfig,
         signal: input.signal,

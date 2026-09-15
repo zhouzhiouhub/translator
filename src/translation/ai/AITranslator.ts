@@ -25,7 +25,11 @@ export class AITranslator implements Translator {
     const usesJsonEnvelope = !input.systemPrompt;
     const baseSystem =
       input.systemPrompt ??
-      defaultTranslateSystemPrompt(input.targetLanguage, input.style);
+      defaultTranslateSystemPrompt(
+        input.targetLanguage,
+        input.style,
+        input.customPrompt,
+      );
 
     const firstRaw = await provider.translate({
       text: input.text,
@@ -56,14 +60,17 @@ export class AITranslator implements Translator {
 
     throwIfAborted(input.signal);
 
-    // One forced retry with an explicit “must change language” prompt
     const retryRaw = await provider.translate({
       text: input.text,
       sourceLanguage: input.sourceLanguage,
       targetLanguage: targetLabel,
       style: input.style,
       systemPrompt: usesJsonEnvelope
-        ? strongTranslateSystemPrompt(input.targetLanguage, input.style)
+        ? strongTranslateSystemPrompt(
+            input.targetLanguage,
+            input.style,
+            input.customPrompt,
+          )
         : input.systemPrompt,
       signal: input.signal,
     });

@@ -5,6 +5,7 @@ import type {
   TranslationStyle,
   TranslateResult,
 } from "@/types/translation";
+import { MAX_CUSTOM_PROMPT_CHARS } from "@/types/translation";
 import { checkAiConfig } from "@/agents/translator";
 import {
   clearAIConfig,
@@ -28,6 +29,8 @@ interface AppState {
   /** Batch target languages (persisted across refresh). */
   targetLanguages: string[];
   style: TranslationStyle;
+  /** Optional user system prompt; when set, replaces Prompt.txt defaults. */
+  customPrompt: string;
   followUiToTarget: boolean;
   inputText: string;
   result: TranslateResult | null;
@@ -38,6 +41,7 @@ interface AppState {
   setTargetLanguage: (v: string) => void;
   setTargetLanguages: (v: string[]) => void;
   setStyle: (v: TranslationStyle) => void;
+  setCustomPrompt: (v: string) => void;
   setFollowUiToTarget: (v: boolean) => void;
   setInputText: (v: string) => void;
   setResult: (v: TranslateResult | null) => void;
@@ -53,6 +57,7 @@ export const useAppStore = create<AppState>()(
       targetLanguage: "en",
       targetLanguages: ["en"],
       style: "default",
+      customPrompt: "",
       followUiToTarget: false,
       inputText: "",
       result: null,
@@ -70,6 +75,10 @@ export const useAppStore = create<AppState>()(
           };
         }),
       setStyle: (style) => set({ style }),
+      setCustomPrompt: (customPrompt) =>
+        set({
+          customPrompt: customPrompt.slice(0, MAX_CUSTOM_PROMPT_CHARS),
+        }),
       setFollowUiToTarget: (followUiToTarget) => set({ followUiToTarget }),
       setInputText: (inputText) =>
         set({ inputText: inputText.slice(0, MAX_CHARS) }),
@@ -100,6 +109,7 @@ export const useAppStore = create<AppState>()(
         targetLanguage: state.targetLanguage,
         targetLanguages: state.targetLanguages,
         style: state.style,
+        customPrompt: state.customPrompt,
         followUiToTarget: state.followUiToTarget,
         // never persist apiKey here — kept in dedicated storage module
       }),
@@ -115,6 +125,14 @@ export const useAppStore = create<AppState>()(
           ...p,
           targetLanguages,
           targetLanguage: targetLanguages[0] ?? current.targetLanguage,
+          style:
+            p.style === ("custom" as TranslationStyle)
+              ? "default"
+              : (p.style ?? current.style),
+          customPrompt:
+            typeof p.customPrompt === "string"
+              ? p.customPrompt.slice(0, MAX_CUSTOM_PROMPT_CHARS)
+              : current.customPrompt,
         };
       },
     },

@@ -19,20 +19,25 @@ npm run dev
 
 ## 部署（Cloudflare Workers + OpenNext）
 
-本地一键部署：
+`npm run build` 会先跑 `next build`，再编译 OpenNext Worker（`.open-next`），因此 Cloudflare Workers Builds 默认的：
+
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`
+
+可以直接用。本地一键部署：
 
 ```bash
 npm run deploy
 ```
 
-若使用 **Workers Builds**（连 Git 自动部署），在 Cloudflare 控制台把构建设置改成：
+若只想构建 Next（不做 Worker 打包）：`npm run build:next`。
+
+推荐（更快、少歧义）也可在控制台显式写成：
 
 | 设置 | 值 |
 |------|------|
 | Build command | `npx @opennextjs/cloudflare build` |
 | Deploy command | `npx @opennextjs/cloudflare deploy` |
-
-不要用 `npm run build` + `npx wrangler deploy`：前者只产出 Next.js 构建，不会生成 `.open-next`，部署会报 `Could not find compiled Open Next config`。
 
 ## 品牌资源
 

@@ -60,7 +60,11 @@
     "resultTarget": "Translation",
     "retranslate": "Retranslate",
     "metaAi": "Agent · {model} · {style} · {duration}",
-    "followUiPackMissing": "That UI locale pack is not generated yet. Generate it under Settings first."
+    "followUiPackMissing": "That UI locale pack is not generated yet. Generate it under Settings first.",
+    "followUiBatchHint": "Unavailable for batch (UI switch works with a single target only)",
+    "progressBatch": "Translating {lang} ({current}/{total})…",
+    "batchDone": "Finished translating into {count} languages",
+    "batchResultMeta": "{languages} languages · {model} · {duration}"
   },
   "document": {
     "dropTitle": "Drop a file here, or click to browse",
@@ -162,14 +166,14 @@
       "3": "Gemini needs reachability to Google. If it keeps failing, try DeepSeek or a Compatible gateway.",
       "4": "For Compatible, only enter API base URLs you trust to avoid phishing."
     },
-    "useTitle": "How to translate text",
-    "useIntro": "After configuration, open Translator → Text:",
+    "useTitle": "How to translate text (batch languages)",
+    "useIntro": "After configuration, open Translator → Text. One source can be translated into multiple target languages:",
     "useSteps": {
       "1": "Paste or type source text (watch the character limit).",
-      "2": "Pick a target language; optionally enable Switch the whole UI to the target language.",
+      "2": "Under Languages, each slot is one target; tap + to add more. Optionally enable Switch the whole UI (single target only).",
       "3": "Choose a style: Default, Natural, Casual, Business, Formal, Technical, Academic, or Localized.",
-      "4": "Tap Translate. Results show source, translation, and model / style / duration.",
-      "5": "Copy the translation, or tap Retranslate with the current settings."
+      "4": "Tap Translate. For multiple languages, results show language tabs and online preview.",
+      "5": "Copy the active translation, or Retranslate with the current settings. Batch runs are saved under History → Text as one group."
     },
     "documentTitle": "How to translate documents (batch languages)",
     "documentIntro": "On Translator, open the Document tab. One source file can be translated into multiple target languages at once. Files are parsed locally, then sent in chunks to your AI.",
@@ -188,7 +192,7 @@
       "4": "Filter History by Text / Document. Batch jobs show as Batch · N langs with per-language preview or delete-all."
     },
     "historyTitle": "Translation history",
-    "historyBody": "Text and document entries are separated. Use All / Text / Document at the top. Document batch jobs stay grouped (one batch, multiple language tabs) so they do not mix with plain text history. Up to about 100 entries; search, filter by target language, preview, copy, or delete. Clear respects the active category.",
+    "historyBody": "Text and document entries are separated. Use All / Text / Document at the top. Text or document batch jobs stay grouped (one batch, multiple language tabs) so they do not mix with single entries. Up to about 100 entries; search, filter by target language, preview, copy, or delete. Clear respects the active category.",
     "uiLangTitle": "UI language",
     "uiLangBody": "Use the top-right language dropdown to switch ready UI languages. Chinese and English are built-in; generate other packs under Settings with your AI, then apply them from the dropdown. Enabling Switch the whole UI to the target language only switches when that pack is already generated.",
     "followUiPackMissing": "That UI locale pack is not generated yet. Generate it under Settings first.",
@@ -199,9 +203,9 @@
       "q2": "Still Not configured after saving?",
       "a2": "Make sure the key was typed or pasted. Browser autofill dots alone do not write a real key. Save again and refresh.",
       "q3": "How do I translate into multiple languages at once?",
-      "a3": "Open Document, add target languages with + under Languages, then Translate. Switch language tabs to preview, open Preview, or download each / all. History keeps them under Document as one batch group.",
+      "a3": "In Text or Document, add target languages with + under Languages, then Translate. Switch language tabs to preview or open Preview. History keeps them under Text / Document as batch groups.",
       "q4": "Who pays for the API?",
-      "a4": "Usage is billed to your provider account (BYOK). Longer documents and more target languages mean more chunks and more calls."
+      "a4": "Usage is billed to your provider account (BYOK). More target languages and longer documents mean more calls."
     },
     "linkConfig": "AI Config",
     "linkTranslator": "Translator",

@@ -1,21 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { checkAiConfig, runTranslation } from "@/agents/translator";
+import { Eye } from "lucide-react";
+import {
+  checkAiConfig,
+  runBatchTranslation,
+  type BatchTranslateProgress,
+  type BatchTranslateResult,
+  type BatchTranslateResultItem,
+} from "@/agents/translator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { LanguageSelect } from "@/components/ui/language-select";
 import { DocumentPanel } from "@/components/translator/document-panel";
+import { MultiTargetLanguagePicker } from "@/components/translator/multi-target-language-picker";
 import { useAppStore } from "@/stores/app";
-import { useHistoryStore } from "@/stores/history";
+import { createBatchId, useHistoryStore } from "@/stores/history";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
+import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
 import { mapTargetLangToUiLocale } from "@/i18n/ui-locales";
 import { setExplicitUiLocaleCookie } from "@/i18n/resolve-ui-locale";
 import { PageContainer } from "@/components/layout/page-container";
@@ -36,13 +44,21 @@ const STYLES: TranslationStyle[] = [
 
 export function TranslatorPanel() {
   const t = useTranslations("translator");
+  const tDoc = useTranslations("document");
   const tGate = useTranslations("aiGate");
   const tCommon = useTranslations("common");
   const routeLocale = useRouteLocale();
   const router = useRouter();
+  const langs = useLocalizedLanguageOptions();
   const [toast, setToast] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [tab, setTab] = useState<TranslatorTab>("text");
+  const [progress, setProgress] = useState<BatchTranslateProgress | null>(null);
+  const [batchResult, setBatchResult] = useState<BatchTranslateResult | null>(
+    null,
+  );
+  const [activeLang, setActiveLang] = useState<string | null>(null);
 
   const {
     inputText,
@@ -53,43 +69,81 @@ export function TranslatorPanel() {
     setStyle,
     followUiToTarget,
     setFollowUiToTarget,
-    result,
     setResult,
     aiConfig,
     aiConfigured,
     maxChars,
     hydrateAiConfig,
   } = useAppStore();
-  const addEntry = useHistoryStore((s) => s.addEntry);
+  const [targetLanguages, setTargetLanguages] = useState<string[]>([
+    targetLanguage || "en",
+  ]);
+  const addBatchEntries = useHistoryStore((s) => s.addBatchEntries);
   const applyLocale = useUiLocaleStore((s) => s.applyLocale);
 
   useEffect(() => {
     void hydrateAiConfig();
   }, [hydrateAiConfig]);
 
+  function langLabel(code: string) {
+    return langs.find((l) => l.value === code)?.label ?? code;
+  }
+
+  function onTargetLanguagesChange(next: string[]) {
+    setTargetLanguages(next);
+    if (next[0]) setTargetLanguage(next[0]);
+  }
+
+  const activeResult: BatchTranslateResultItem | null = useMemo(() => {
+    if (!batchResult) return null;
+    const code = activeLang ?? batchResult.results[0]?.targetLanguage;
+    return (
+      batchResult.results.find((r) => r.targetLanguage === code) ??
+      batchResult.results[0] ??
+      null
+    );
+  }, [activeLang, batchResult]);
+
   const mutation = useMutation({
     mutationFn: () =>
-      runTranslation({
+      runBatchTranslation({
         text: inputText,
-        targetLanguage,
+        targetLanguages,
         style,
         aiConfig,
+        onProgress: setProgress,
       }),
     onSuccess: (data) => {
-      setResult(data);
-      addEntry({
-        kind: "text",
-        sourceText: inputText,
-        translatedText: data.text,
-        sourceLanguage: data.detectedSourceLanguage,
-        targetLanguage,
-        style: data.style ?? style,
-        model: data.model,
-        durationMs: data.durationMs,
-      });
+      setProgress(null);
+      setBatchResult(data);
+      const first = data.results[0];
+      setActiveLang(first?.targetLanguage ?? null);
+      if (first) {
+        setResult(first);
+        setTargetLanguage(first.targetLanguage);
+      }
 
-      if (followUiToTarget) {
-        const uiLocale = mapTargetLangToUiLocale(targetLanguage);
+      const batchId = createBatchId();
+      addBatchEntries(
+        data.results.map((r) => ({
+          kind: "text" as const,
+          batchId: data.results.length > 1 ? batchId : undefined,
+          sourceText: inputText,
+          translatedText: r.text,
+          sourceLanguage: r.detectedSourceLanguage,
+          targetLanguage: r.targetLanguage,
+          style: r.style ?? style,
+          model: r.model,
+          durationMs: r.durationMs,
+        })),
+      );
+
+      if (data.results.length > 1) {
+        showToast(t("batchDone", { count: data.results.length }));
+      }
+
+      if (followUiToTarget && data.results.length === 1 && first) {
+        const uiLocale = mapTargetLangToUiLocale(first.targetLanguage);
         if (uiLocale) {
           void applyLocale(uiLocale)
             .then(() => {
@@ -112,8 +166,13 @@ export function TranslatorPanel() {
       }
     },
     onError: (err: Error) => {
+      setProgress(null);
       if (err.message === "AI_NOT_CONFIGURED") {
         setGateOpen(true);
+        return;
+      }
+      if (err.message === "NO_TARGETS") {
+        showToast(tDoc("errorNoTargets"));
         return;
       }
       setToast(err.message);
@@ -130,6 +189,10 @@ export function TranslatorPanel() {
       showToast(t("emptyInput"));
       return;
     }
+    if (targetLanguages.length === 0) {
+      showToast(tDoc("errorNoTargets"));
+      return;
+    }
     const check = checkAiConfig(aiConfig);
     if (!check.ok) {
       setGateOpen(true);
@@ -139,6 +202,15 @@ export function TranslatorPanel() {
   }
 
   const check = checkAiConfig(aiConfig);
+
+  const progressLabel =
+    progress && targetLanguages.length > 1
+      ? t("progressBatch", {
+          lang: langLabel(progress.targetLanguage),
+          current: progress.current,
+          total: progress.total,
+        })
+      : null;
 
   return (
     <PageContainer>
@@ -185,7 +257,7 @@ export function TranslatorPanel() {
         {tab === "document" ? (
           <DocumentPanel onToast={showToast} />
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
+          <div className="space-y-4">
             <div>
               <Textarea
                 value={inputText}
@@ -193,72 +265,165 @@ export function TranslatorPanel() {
                 placeholder={t("placeholder")}
                 className="min-h-[220px]"
               />
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-xs text-muted">
-                  {t("charCount", { count: inputText.length, max: maxChars })}
-                </span>
+              <div className="mt-2 text-xs text-muted">
+                {t("charCount", { count: inputText.length, max: maxChars })}
+              </div>
+            </div>
+
+            <MultiTargetLanguagePicker
+              values={targetLanguages}
+              onChange={onTargetLanguagesChange}
+              disabled={mutation.isPending}
+            />
+
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="flex min-w-[180px] flex-1 flex-col gap-3 sm:max-w-xs">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted">
+                    {t("style")}
+                  </label>
+                  <Select
+                    value={style}
+                    onChange={(e) =>
+                      setStyle(e.target.value as TranslationStyle)
+                    }
+                    disabled={mutation.isPending}
+                  >
+                    {STYLES.map((s) => (
+                      <option key={s} value={s}>
+                        {t(
+                          `style${s.charAt(0).toUpperCase()}${s.slice(1)}` as
+                            | "styleDefault"
+                            | "styleNatural"
+                            | "styleCasual"
+                            | "styleBusiness"
+                            | "styleFormal"
+                            | "styleTechnical"
+                            | "styleAcademic"
+                            | "styleLocalized",
+                        )}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <label className="flex items-start gap-2 text-xs text-muted">
+                  <input
+                    type="checkbox"
+                    checked={followUiToTarget}
+                    onChange={(e) => setFollowUiToTarget(e.target.checked)}
+                    disabled={mutation.isPending || targetLanguages.length > 1}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    {t("followUi")}
+                    {targetLanguages.length > 1 ? (
+                      <span className="mt-0.5 block text-[11px] text-muted">
+                        {t("followUiBatchHint")}
+                      </span>
+                    ) : null}
+                  </span>
+                </label>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {progressLabel ? (
+                  <span className="max-w-[220px] text-xs text-muted">
+                    {progressLabel}
+                  </span>
+                ) : null}
                 <Button onClick={onTranslate} disabled={mutation.isPending}>
                   {mutation.isPending ? tCommon("loading") : t("translate")}
                 </Button>
               </div>
             </div>
-
-            <aside className="flex flex-col gap-3 rounded-xl border border-border bg-slate-50/80 p-3">
-              <label className="text-xs font-medium text-muted">
-                {t("targetLanguage")}
-              </label>
-              <LanguageSelect
-                value={targetLanguage}
-                onChange={setTargetLanguage}
-              />
-
-              <label className="text-xs font-medium text-muted">{t("style")}</label>
-              <Select
-                value={style}
-                onChange={(e) => setStyle(e.target.value as TranslationStyle)}
-              >
-                {STYLES.map((s) => (
-                  <option key={s} value={s}>
-                    {t(
-                      `style${s.charAt(0).toUpperCase()}${s.slice(1)}` as
-                        | "styleDefault"
-                        | "styleNatural"
-                        | "styleCasual"
-                        | "styleBusiness"
-                        | "styleFormal"
-                        | "styleTechnical"
-                        | "styleAcademic"
-                        | "styleLocalized",
-                    )}
-                  </option>
-                ))}
-              </Select>
-
-              <label className="mt-1 flex items-start gap-2 text-xs text-muted">
-                <input
-                  type="checkbox"
-                  checked={followUiToTarget}
-                  onChange={(e) => setFollowUiToTarget(e.target.checked)}
-                  className="mt-0.5"
-                />
-                <span>{t("followUi")}</span>
-              </label>
-            </aside>
           </div>
         )}
       </section>
 
-      {tab === "text" && result ? (
+      {tab === "text" && batchResult && activeResult ? (
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-brand-ink">
+                {t("resultTarget")}
+              </h3>
+              <p className="mt-0.5 text-xs text-muted">
+                {batchResult.results.length > 1
+                  ? t("batchResultMeta", {
+                      languages: batchResult.results.length,
+                      model: activeResult.model ?? "—",
+                      duration: `${(batchResult.durationMs / 1000).toFixed(1)}s`,
+                    })
+                  : t("metaAi", {
+                      model: activeResult.model ?? "—",
+                      style: activeResult.style ?? "default",
+                      duration: `${(activeResult.durationMs / 1000).toFixed(1)}s`,
+                    })}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setPreviewOpen(true)}
+              >
+                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                {tDoc("previewOnline")}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(activeResult.text);
+                  showToast(tCommon("copy"));
+                }}
+              >
+                {tCommon("copy")}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={onTranslate}
+                disabled={mutation.isPending}
+              >
+                {t("retranslate")}
+              </Button>
+            </div>
+          </div>
+
+          {batchResult.results.length > 1 ? (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {batchResult.results.map((r) => {
+                const selected = r.targetLanguage === activeResult.targetLanguage;
+                return (
+                  <button
+                    key={r.targetLanguage}
+                    type="button"
+                    onClick={() => {
+                      setActiveLang(r.targetLanguage);
+                      setResult(r);
+                      setTargetLanguage(r.targetLanguage);
+                    }}
+                    className={
+                      selected
+                        ? "rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                        : "rounded-xl border border-border bg-white px-3 py-1.5 text-sm text-muted hover:bg-slate-50"
+                    }
+                  >
+                    {langLabel(r.targetLanguage)}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <div className="mb-2 flex items-center justify-between text-xs text-muted">
-                <span>
-                  {t("sourceLanguage")}
-                  {result.detectedSourceLanguage
-                    ? `：${result.detectedSourceLanguage}`
-                    : ""}
-                </span>
+              <div className="mb-2 text-xs text-muted">
+                {t("sourceLanguage")}
+                {activeResult.detectedSourceLanguage
+                  ? `：${langLabel(activeResult.detectedSourceLanguage)}`
+                  : ""}
               </div>
               <div className="min-h-[120px] rounded-xl border border-border bg-slate-50 p-3 text-sm whitespace-pre-wrap">
                 {inputText}
@@ -266,37 +431,13 @@ export function TranslatorPanel() {
               <p className="mt-2 text-xs text-muted">{t("resultSource")}</p>
             </div>
             <div>
-              <div className="mb-2 flex items-center justify-between text-xs text-muted">
-                <span>
-                  {t("targetLanguage")}：{targetLanguage}
-                  {result.style ? ` · ${result.style}` : ""}
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(result.text);
-                      showToast(tCommon("copy"));
-                    }}
-                  >
-                    {tCommon("copy")}
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={onTranslate}>
-                    {t("retranslate")}
-                  </Button>
-                </div>
+              <div className="mb-2 text-xs text-muted">
+                {t("targetLanguage")}：{langLabel(activeResult.targetLanguage)}
+                {activeResult.style ? ` · ${activeResult.style}` : ""}
               </div>
               <div className="min-h-[120px] rounded-xl border border-border bg-white p-3 text-sm whitespace-pre-wrap">
-                {result.text}
+                {activeResult.text}
               </div>
-              <p className="mt-2 text-xs text-muted">
-                {t("metaAi", {
-                  model: result.model ?? "—",
-                  style: result.style ?? "default",
-                  duration: `${(result.durationMs / 1000).toFixed(1)}s`,
-                })}
-              </p>
             </div>
           </div>
         </section>
@@ -320,6 +461,66 @@ export function TranslatorPanel() {
           </div>
         ))}
       </section>
+
+      <Dialog
+        open={previewOpen && !!activeResult}
+        onClose={() => setPreviewOpen(false)}
+        title={tDoc("previewDialogTitle", {
+          lang: activeResult ? langLabel(activeResult.targetLanguage) : "",
+        })}
+        className="max-w-3xl"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPreviewOpen(false)}>
+              {tCommon("cancel")}
+            </Button>
+            {activeResult ? (
+              <Button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(activeResult.text);
+                  showToast(tCommon("copy"));
+                }}
+              >
+                {tCommon("copy")}
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        {batchResult && activeResult ? (
+          <div className="space-y-3">
+            {batchResult.results.length > 1 ? (
+              <div className="flex flex-wrap gap-2">
+                {batchResult.results.map((r) => {
+                  const selected =
+                    r.targetLanguage === activeResult.targetLanguage;
+                  return (
+                    <button
+                      key={r.targetLanguage}
+                      type="button"
+                      onClick={() => {
+                        setActiveLang(r.targetLanguage);
+                        setResult(r);
+                        setTargetLanguage(r.targetLanguage);
+                      }}
+                      className={
+                        selected
+                          ? "rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                          : "rounded-lg border border-border px-2.5 py-1 text-xs text-muted hover:bg-slate-50"
+                      }
+                    >
+                      {langLabel(r.targetLanguage)}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+            <pre className="max-h-[55vh] overflow-auto rounded-xl border border-border bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+              {activeResult.text}
+            </pre>
+          </div>
+        ) : null}
+      </Dialog>
 
       <Dialog
         open={gateOpen}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Eye } from "lucide-react";
@@ -17,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { DocumentPanel } from "@/components/translator/document-panel";
 import { MultiTargetLanguagePicker } from "@/components/translator/multi-target-language-picker";
 import {
   downloadTextFile,
@@ -34,6 +34,25 @@ import type { TranslationStyle } from "@/types/translation";
 import { TRANSLATION_STYLES } from "@/types/translation";
 
 type TranslatorTab = "text" | "document";
+
+type DocumentPanelProps = {
+  onToast: (message: string) => void;
+};
+
+const DocumentPanel = dynamic<DocumentPanelProps>(
+  () =>
+    import("@/components/translator/document-panel").then(
+      (mod) => mod.DocumentPanel,
+    ),
+  {
+    loading: () => (
+      <div
+        aria-hidden="true"
+        className="min-h-[220px] rounded-xl border border-border bg-slate-50"
+      />
+    ),
+  },
+);
 
 function styleMessageKey(style: TranslationStyle) {
   return `style${style.charAt(0).toUpperCase()}${style.slice(1)}` as

@@ -3,7 +3,6 @@
 import {
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -79,7 +78,7 @@ export function SearchableSelect({
 
   function updatePosition() {
     const el = triggerRef.current;
-    if (!el) return;
+    if (!el) return false;
     const rect = el.getBoundingClientRect();
     const width = Math.max(rect.width, 288);
     let left = rect.left;
@@ -91,18 +90,14 @@ export function SearchableSelect({
       left,
       width,
     });
+    return true;
   }
 
-  useLayoutEffect(() => {
-    if (!open) return;
-    updatePosition();
-    // Reset transient search state for each newly opened popup.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setQuery("");
-    setHighlight(0);
+  useEffect(() => {
+    if (!open || !mounted) return;
     const id = window.requestAnimationFrame(() => searchRef.current?.focus());
     return () => window.cancelAnimationFrame(id);
-  }, [open]);
+  }, [open, mounted]);
 
   useEffect(() => {
     // Search results always restart keyboard navigation from the first item.
@@ -141,11 +136,18 @@ export function SearchableSelect({
     setOpen(false);
   }
 
+  function openPanel() {
+    if (!updatePosition()) return;
+    setQuery("");
+    setHighlight(0);
+    setOpen(true);
+  }
+
   function onTriggerKeyDown(e: KeyboardEvent) {
     if (disabled) return;
     if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      setOpen(true);
+      if (!open) openPanel();
     }
   }
 
@@ -254,7 +256,14 @@ export function SearchableSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
-        onClick={() => !disabled && setOpen((v) => !v)}
+        onClick={() => {
+          if (disabled) return;
+          if (open) {
+            setOpen(false);
+            return;
+          }
+          openPanel();
+        }}
         onKeyDown={onTriggerKeyDown}
         className={cn(
           "flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-border bg-white px-3 text-left text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60",

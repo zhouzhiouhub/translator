@@ -1,29 +1,24 @@
 import type { MetadataRoute } from "next";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kinolin.com";
+import { buildLocaleAlternates, buildLocaleUrl } from "@/lib/seo/urls";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const languages = buildLocaleAlternates();
+
   return [
     {
-      url: `${siteUrl}/zh-CN`,
+      url: buildLocaleUrl("zh-CN"),
       changeFrequency: "weekly",
       priority: 1,
       alternates: {
-        languages: {
-          "zh-CN": `${siteUrl}/zh-CN`,
-          "en-US": `${siteUrl}/en-US`,
-        },
+        languages,
       },
     },
     {
-      url: `${siteUrl}/en-US`,
+      url: buildLocaleUrl("en-US"),
       changeFrequency: "weekly",
       priority: 1,
       alternates: {
-        languages: {
-          "zh-CN": `${siteUrl}/zh-CN`,
-          "en-US": `${siteUrl}/en-US`,
-        },
+        languages,
       },
     },
   ];

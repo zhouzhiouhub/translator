@@ -6,9 +6,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { UiLocaleProvider } from "@/components/i18n/ui-locale-provider";
 import { Providers } from "@/components/providers";
 import { isAppLocale, fixedLocales } from "@/i18n/config";
+import { buildLocaleAlternates, buildLocaleUrl } from "@/lib/seo/urls";
 import "../globals.css";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kinolin.com";
 
 export async function generateMetadata({
   params,
@@ -17,7 +16,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "seo" });
-  const url = `${siteUrl}/${locale}`;
+  const url = buildLocaleUrl(locale);
 
   return {
     title: t("title"),
@@ -27,11 +26,7 @@ export async function generateMetadata({
     creator: t("creator"),
     alternates: {
       canonical: url,
-      languages: {
-        "zh-CN": `${siteUrl}/zh-CN`,
-        "en-US": `${siteUrl}/en-US`,
-        "x-default": `${siteUrl}/en-US`,
-      },
+      languages: buildLocaleAlternates(),
     },
     openGraph: {
       locale: locale === "zh-CN" ? "zh_CN" : "en_US",

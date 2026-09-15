@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { getSiteOrigin } from "@/lib/seo/urls";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kinolin.com";
+const siteUrl = getSiteOrigin();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

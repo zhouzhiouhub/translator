@@ -228,7 +228,9 @@ export async function saveAIConfig(config: AIConfig): Promise<void> {
   if (!validated) throw new Error("AI_CONFIG_INVALID");
   const encryptedApiKey = await encryptApiKey(validated.apiKey);
   await saveEncryptedApiKey(encryptedApiKey);
-  const { apiKey: _apiKey, ...metadata } = validated;
+  const metadata = Object.fromEntries(
+    Object.entries(validated).filter(([key]) => key !== "apiKey"),
+  );
   localStorage.setItem(STORAGE_KEY, JSON.stringify(metadata));
 }
 

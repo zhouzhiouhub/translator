@@ -72,6 +72,8 @@ export function SearchableSelect({
   }, [options, query]);
 
   useEffect(() => {
+    // This client-only flag keeps SSR and browser labels consistent.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -94,6 +96,8 @@ export function SearchableSelect({
   useLayoutEffect(() => {
     if (!open) return;
     updatePosition();
+    // Reset transient search state for each newly opened popup.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuery("");
     setHighlight(0);
     const id = window.requestAnimationFrame(() => searchRef.current?.focus());
@@ -101,6 +105,8 @@ export function SearchableSelect({
   }, [open]);
 
   useEffect(() => {
+    // Search results always restart keyboard navigation from the first item.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHighlight(0);
   }, [query]);
 

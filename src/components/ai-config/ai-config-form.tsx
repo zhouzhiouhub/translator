@@ -56,6 +56,8 @@ export function AiConfigForm() {
 
   useEffect(() => {
     if (!aiConfig) return;
+    // Sync the external persisted config into the editable form controls.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setProvider(aiConfig.provider);
     setModel(aiConfig.model || DEFAULT_MODELS[aiConfig.provider]);
     setBaseUrl(aiConfig.baseUrl ?? "");

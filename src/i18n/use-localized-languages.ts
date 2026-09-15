@@ -12,7 +12,11 @@ import { isFixedUiLocale } from "@/i18n/ui-locales";
 
 function useHasMounted() {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    // Switch to localized labels only after the browser has hydrated.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
   return mounted;
 }
 

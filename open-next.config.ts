@@ -5,7 +5,9 @@ import { defineCloudflareConfig } from "@opennextjs/cloudflare";
  * default `npm run build` produces `.open-next`. Point buildCommand at the
  * plain Next script to avoid recursion.
  */
-export default {
+const openNextConfig = {
   ...defineCloudflareConfig({}),
   buildCommand: "npm run build:next",
 };
+
+export default openNextConfig;

@@ -39,6 +39,8 @@ export function UiLocaleSwitcher() {
   }
 
   useEffect(() => {
+    // This client-only flag prevents localized labels from changing during hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

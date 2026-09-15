@@ -24,6 +24,8 @@ export function CustomPromptEditor({
   const [savedFlash, setSavedFlash] = useState(false);
 
   useEffect(() => {
+    // Reset the local draft when the persisted store value changes externally.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft(value);
   }, [value]);
 

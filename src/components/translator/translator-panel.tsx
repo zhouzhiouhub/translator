@@ -63,8 +63,9 @@ export function TranslatorPanel() {
   const {
     inputText,
     setInputText,
-    targetLanguage,
+    targetLanguages,
     setTargetLanguage,
+    setTargetLanguages,
     style,
     setStyle,
     followUiToTarget,
@@ -75,9 +76,6 @@ export function TranslatorPanel() {
     maxChars,
     hydrateAiConfig,
   } = useAppStore();
-  const [targetLanguages, setTargetLanguages] = useState<string[]>([
-    targetLanguage || "en",
-  ]);
   const addBatchEntries = useHistoryStore((s) => s.addBatchEntries);
   const applyLocale = useUiLocaleStore((s) => s.applyLocale);
 
@@ -87,11 +85,6 @@ export function TranslatorPanel() {
 
   function langLabel(code: string) {
     return langs.find((l) => l.value === code)?.label ?? code;
-  }
-
-  function onTargetLanguagesChange(next: string[]) {
-    setTargetLanguages(next);
-    if (next[0]) setTargetLanguage(next[0]);
   }
 
   const activeResult: BatchTranslateResultItem | null = useMemo(() => {
@@ -272,7 +265,7 @@ export function TranslatorPanel() {
 
             <MultiTargetLanguagePicker
               values={targetLanguages}
-              onChange={onTargetLanguagesChange}
+              onChange={setTargetLanguages}
               disabled={mutation.isPending}
             />
 

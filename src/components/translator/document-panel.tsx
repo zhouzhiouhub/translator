@@ -72,15 +72,13 @@ export function DocumentPanel({
   const [activeLang, setActiveLang] = useState<string | null>(null);
 
   const {
-    targetLanguage,
+    targetLanguages,
+    setTargetLanguages,
     style,
     setStyle,
     aiConfig,
     aiConfigured,
   } = useAppStore();
-  const [targetLanguages, setTargetLanguages] = useState<string[]>([
-    targetLanguage || "en",
-  ]);
   const addBatchEntries = useHistoryStore((s) => s.addBatchEntries);
 
   const check = checkAiConfig(aiConfig);

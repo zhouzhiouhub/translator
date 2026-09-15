@@ -14,9 +14,19 @@ import {
 
 const MAX_CHARS = 2000;
 
+function normalizeTargetLanguages(codes: string[] | undefined, fallback = "en") {
+  const unique = [
+    ...new Set((codes ?? []).map((c) => c.trim()).filter(Boolean)),
+  ];
+  return unique.length > 0 ? unique : [fallback];
+}
+
 interface AppState {
   sourceLanguage: string;
+  /** Primary / first target — kept in sync with targetLanguages[0]. */
   targetLanguage: string;
+  /** Batch target languages (persisted across refresh). */
+  targetLanguages: string[];
   style: TranslationStyle;
   followUiToTarget: boolean;
   inputText: string;
@@ -26,6 +36,7 @@ interface AppState {
   maxChars: number;
   setSourceLanguage: (v: string) => void;
   setTargetLanguage: (v: string) => void;
+  setTargetLanguages: (v: string[]) => void;
   setStyle: (v: TranslationStyle) => void;
   setFollowUiToTarget: (v: boolean) => void;
   setInputText: (v: string) => void;
@@ -40,6 +51,7 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       sourceLanguage: "auto",
       targetLanguage: "en",
+      targetLanguages: ["en"],
       style: "default",
       followUiToTarget: false,
       inputText: "",
@@ -49,6 +61,14 @@ export const useAppStore = create<AppState>()(
       maxChars: MAX_CHARS,
       setSourceLanguage: (sourceLanguage) => set({ sourceLanguage }),
       setTargetLanguage: (targetLanguage) => set({ targetLanguage }),
+      setTargetLanguages: (codes) =>
+        set(() => {
+          const targetLanguages = normalizeTargetLanguages(codes);
+          return {
+            targetLanguages,
+            targetLanguage: targetLanguages[0]!,
+          };
+        }),
       setStyle: (style) => set({ style }),
       setFollowUiToTarget: (followUiToTarget) => set({ followUiToTarget }),
       setInputText: (inputText) =>
@@ -78,10 +98,25 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         sourceLanguage: state.sourceLanguage,
         targetLanguage: state.targetLanguage,
+        targetLanguages: state.targetLanguages,
         style: state.style,
         followUiToTarget: state.followUiToTarget,
         // never persist apiKey here — kept in dedicated storage module
       }),
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<AppState>;
+        const targetLanguages = normalizeTargetLanguages(
+          p.targetLanguages ??
+            (p.targetLanguage ? [p.targetLanguage] : undefined),
+          current.targetLanguage,
+        );
+        return {
+          ...current,
+          ...p,
+          targetLanguages,
+          targetLanguage: targetLanguages[0] ?? current.targetLanguage,
+        };
+      },
     },
   ),
 );

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { isUiLocale, type UiLocale } from "@/i18n/ui-locales";
 import { localizedLanguageName, stableLanguageName } from "@/i18n/languages";
+import { setExplicitUiLocaleCookie } from "@/i18n/resolve-ui-locale";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 
 function swapLocalePath(pathname: string, current: string, next: string) {
@@ -64,6 +65,7 @@ export function UiLocaleSwitcher() {
     setOpen(false);
     try {
       await applyLocale(nextLocale);
+      setExplicitUiLocaleCookie(nextLocale);
       router.push(swapLocalePath(pathname, routeLocale, nextLocale));
       setToast(t("applySuccess"));
       window.setTimeout(() => setToast(null), 2200);

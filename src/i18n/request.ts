@@ -9,7 +9,7 @@ async function loadMessages(locale: string) {
   if (isFixedLocale(locale)) {
     return (await import(`../../messages/${locale}.json`)).default;
   }
-  // Dynamic route locales: SSR uses zh-CN; client overrides from cache.
+  // Dynamic route locales: SSR uses English; client overrides from cache.
   return (await import(`../../messages/${defaultLocale}.json`)).default;
 }
 

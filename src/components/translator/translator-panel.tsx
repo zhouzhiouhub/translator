@@ -16,6 +16,7 @@ import { useHistoryStore } from "@/stores/history";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { mapTargetLangToUiLocale } from "@/i18n/ui-locales";
+import { setExplicitUiLocaleCookie } from "@/i18n/resolve-ui-locale";
 import { PageContainer } from "@/components/layout/page-container";
 import type { TranslationStyle } from "@/types/translation";
 
@@ -87,6 +88,7 @@ export function TranslatorPanel() {
         if (uiLocale) {
           void applyLocale(uiLocale)
             .then(() => {
+              setExplicitUiLocaleCookie(uiLocale);
               const rest =
                 window.location.pathname.replace(
                   new RegExp(`^/${routeLocale}`),

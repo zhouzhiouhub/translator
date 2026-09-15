@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-打开 [http://localhost:3000](http://localhost:3000)（会跳转到 `/zh-CN`）。
+打开 [http://localhost:3000](http://localhost:3000)（按浏览器语言跳转；内置中/英，或已生成的界面语言包；其余回退 `/en-US`）。
 
 先到 **配置 AI** 填写 Provider / Model / API Key，再使用翻译官。
 

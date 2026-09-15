@@ -19,6 +19,7 @@ import {
   type UiLocale,
 } from "@/i18n/ui-locales";
 import { getLanguage } from "@/i18n/languages";
+import { syncReadyUiLocalesCookie } from "@/i18n/resolve-ui-locale";
 
 const MIN_COVERAGE_RATIO = 0.35;
 const STORAGE_PREFIX = "kinolin.localePack.";
@@ -82,7 +83,7 @@ function listCachedLocaleCodes(sourceHash: string): string[] {
 export const useUiLocaleStore = create<UiLocaleState>()(
   persist(
     (set, get) => ({
-      preferredUiLocale: "zh-CN",
+      preferredUiLocale: "en-US",
       dynamicMessages: null,
       readyLocales: [...FIXED_UI_LOCALES],
       status: "idle",
@@ -103,6 +104,7 @@ export const useUiLocaleStore = create<UiLocaleState>()(
           if (await isPackReady(code)) ready.push(code);
         }
         set({ readyLocales: ready });
+        syncReadyUiLocalesCookie(ready);
       },
 
       hydrateDynamicPack: async () => {

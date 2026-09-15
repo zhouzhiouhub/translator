@@ -13,7 +13,8 @@ export const locales = Array.from(
 export type FixedLocale = (typeof fixedLocales)[number];
 export type AppLocale = (typeof locales)[number];
 
-export const defaultLocale: AppLocale = "zh-CN";
+/** Fallback when the browser language has no built-in UI pack. */
+export const defaultLocale: AppLocale = "en-US";
 
 export const localeLabels: Record<string, string> = Object.fromEntries([
   ...APP_LANGUAGES.map((l) => [l.code, l.nameZh] as const),

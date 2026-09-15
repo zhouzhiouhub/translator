@@ -64,9 +64,11 @@ export class ClaudeProvider implements AIProvider {
     };
     const text = data.content?.find((c) => c.type === "text")?.text?.trim() ?? "";
     if (!text) throw new Error("PROVIDER_EMPTY|Claude");
+    const parsed = parseTranslateModelOutput(text, params.text);
 
     return {
       text,
+      detectedSourceLanguage: parsed.detectedSourceLanguage,
       model: this.config.model,
       durationMs: Date.now() - started,
     };

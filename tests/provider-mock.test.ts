@@ -37,6 +37,7 @@ describe("provider adapters", () => {
         signal: controller.signal,
       });
       assert.equal(result.text, "Hello");
+        assert.equal(result.detectedSourceLanguage, "zh-CN");
       assert.equal(request?.signal, controller.signal);
     } finally {
       restore();
@@ -55,6 +56,7 @@ describe("provider adapters", () => {
         provider: "claude",
       }).translate({ text: "你好", targetLanguage: "fr" });
       assert.equal(result.text, "Bonjour");
+        assert.equal(result.detectedSourceLanguage, "zh-CN");
     } finally {
       restore();
     }
@@ -75,6 +77,7 @@ describe("provider adapters", () => {
         provider: "gemini",
       }).translate({ text: "你好", targetLanguage: "es" });
       assert.equal(result.text, "Hola");
+        assert.equal(result.detectedSourceLanguage, "zh-CN");
     } finally {
       restore();
     }

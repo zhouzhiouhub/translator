@@ -45,9 +45,11 @@ async function openAiCompatibleTranslate(
   };
   const text = data.choices?.[0]?.message?.content?.trim() ?? "";
   if (!text) throw new Error("PROVIDER_EMPTY|AI");
+    const parsed = parseTranslateModelOutput(text, params.text);
 
   return {
     text,
+      detectedSourceLanguage: parsed.detectedSourceLanguage,
     model: config.model,
     durationMs: Date.now() - started,
   };

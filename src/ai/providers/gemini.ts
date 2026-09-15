@@ -106,9 +106,11 @@ export class GeminiProvider implements AIProvider {
     };
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
     if (!text) throw new Error("GEMINI_EMPTY");
+    const parsed = parseTranslateModelOutput(text, params.text);
 
     return {
       text,
+      detectedSourceLanguage: parsed.detectedSourceLanguage,
       model,
       durationMs: Date.now() - started,
     };

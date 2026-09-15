@@ -65,7 +65,10 @@
     "progressBatch": "正在翻译 {lang}（{current}/{total}）…",
     "batchDone": "已完成 {count} 种语言的翻译",
     "batchResultMeta": "{languages} 种语言 · {model} · {duration}",
-    "errorUnchanged": "模型未真正译成目标语言（译文与原文相同或仍是源语），请换模型后重试"
+    "errorUnchanged": "模型未真正译成目标语言（译文与原文相同或仍是源语），请换模型后重试",
+    "download": "下载当前语言",
+    "downloadAll": "下载全部语言",
+    "downloaded": "已开始下载"
   },
   "document": {
     "dropTitle": "拖拽文件到此处，或点击选择",
@@ -235,6 +238,9 @@
     "preview": "在线预览",
     "previewTitle": "在线预览",
     "copyTranslation": "复制译文",
+    "download": "下载译文",
+    "downloadAll": "下载全部语言",
+    "downloaded": "已开始下载",
     "delete": "删除",
     "deleteBatch": "删除整批",
     "clearAll": "清空全部",

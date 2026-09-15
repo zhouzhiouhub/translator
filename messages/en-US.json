@@ -65,7 +65,10 @@
     "progressBatch": "Translating {lang} ({current}/{total})…",
     "batchDone": "Finished translating into {count} languages",
     "batchResultMeta": "{languages} languages · {model} · {duration}",
-    "errorUnchanged": "The model did not translate into the target language (output matches the source). Try another model."
+    "errorUnchanged": "The model did not translate into the target language (output matches the source). Try another model.",
+    "download": "Download current",
+    "downloadAll": "Download all",
+    "downloaded": "Download started"
   },
   "document": {
     "dropTitle": "Drop a file here, or click to browse",
@@ -235,6 +238,9 @@
     "preview": "Preview",
     "previewTitle": "Online preview",
     "copyTranslation": "Copy translation",
+    "download": "Download",
+    "downloadAll": "Download all",
+    "downloaded": "Download started",
     "delete": "Delete",
     "deleteBatch": "Delete batch",
     "clearAll": "Clear all",

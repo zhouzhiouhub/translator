@@ -19,6 +19,10 @@ import { Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { DocumentPanel } from "@/components/translator/document-panel";
 import { MultiTargetLanguagePicker } from "@/components/translator/multi-target-language-picker";
+import {
+  downloadTextFile,
+  historyDownloadFileName,
+} from "@/lib/document/export";
 import { useAppStore } from "@/stores/app";
 import { createBatchId, useHistoryStore } from "@/stores/history";
 import { useUiLocaleStore } from "@/stores/ui-locale";
@@ -377,6 +381,42 @@ export function TranslatorPanel() {
               >
                 {tCommon("copy")}
               </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  downloadTextFile(
+                    historyDownloadFileName({
+                      targetLanguage: activeResult.targetLanguage,
+                      kind: "text",
+                    }),
+                    activeResult.text,
+                  );
+                  showToast(t("downloaded"));
+                }}
+              >
+                {t("download")}
+              </Button>
+              {batchResult.results.length > 1 ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    for (const r of batchResult.results) {
+                      downloadTextFile(
+                        historyDownloadFileName({
+                          targetLanguage: r.targetLanguage,
+                          kind: "text",
+                        }),
+                        r.text,
+                      );
+                    }
+                    showToast(t("downloaded"));
+                  }}
+                >
+                  {t("downloadAll")}
+                </Button>
+              ) : null}
               <Button
                 size="sm"
                 variant="secondary"

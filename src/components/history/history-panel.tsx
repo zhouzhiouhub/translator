@@ -3,12 +3,16 @@
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Copy, Eye, RotateCcw, Trash2 } from "lucide-react";
+import { Copy, Download, Eye, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { LanguageSelect } from "@/components/ui/language-select";
 import { PageContainer } from "@/components/layout/page-container";
+import {
+  downloadTextFile,
+  historyDownloadFileName,
+} from "@/lib/document/export";
 import { useAppStore } from "@/stores/app";
 import { useHistoryStore } from "@/stores/history";
 import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
@@ -176,6 +180,32 @@ export function HistoryPanel() {
     showToast(t("copied"));
   }
 
+  function downloadEntry(entry: HistoryEntry) {
+    downloadTextFile(
+      historyDownloadFileName({
+        fileName: entry.fileName,
+        targetLanguage: entry.targetLanguage,
+        kind: entry.kind,
+      }),
+      entry.translatedText,
+    );
+    showToast(t("downloaded"));
+  }
+
+  function downloadEntries(list: HistoryEntry[]) {
+    for (const entry of list) {
+      downloadTextFile(
+        historyDownloadFileName({
+          fileName: entry.fileName,
+          targetLanguage: entry.targetLanguage,
+          kind: entry.kind,
+        }),
+        entry.translatedText,
+      );
+    }
+    showToast(t("downloaded"));
+  }
+
   const kindTabs: { id: KindFilter; label: string }[] = [
     { id: "all", label: t("filterKindAll") },
     { id: "text", label: t("filterKindText") },
@@ -247,6 +277,7 @@ export function HistoryPanel() {
                   locale={locale}
                   onRestore={() => restore(group.entry)}
                   onCopy={() => void copyText(group.entry.translatedText)}
+                  onDownload={() => downloadEntry(group.entry)}
                   onPreview={() => setPreviewEntry(group.entry)}
                   onDelete={() => removeEntry(group.entry.id)}
                   t={t}
@@ -266,6 +297,8 @@ export function HistoryPanel() {
                     })
                   }
                   onCopy={(entry) => void copyText(entry.translatedText)}
+                  onDownload={(entry) => downloadEntry(entry)}
+                  onDownloadAll={() => downloadEntries(group.entries)}
                   onDeleteBatch={() => removeBatch(group.batchId)}
                   t={t}
                   tTranslator={tTranslator}
@@ -421,6 +454,7 @@ function HistoryCard({
   locale,
   onRestore,
   onCopy,
+  onDownload,
   onPreview,
   onDelete,
   t,
@@ -431,6 +465,7 @@ function HistoryCard({
   locale: string;
   onRestore: () => void;
   onCopy: () => void;
+  onDownload: () => void;
   onPreview: () => void;
   onDelete: () => void;
   t: ReturnType<typeof useTranslations<"history">>;
@@ -501,6 +536,10 @@ function HistoryCard({
           <Copy className="mr-1.5 h-3.5 w-3.5" />
           {t("copyTranslation")}
         </Button>
+        <Button size="sm" variant="secondary" onClick={onDownload}>
+          <Download className="mr-1.5 h-3.5 w-3.5" />
+          {t("download")}
+        </Button>
         <Button size="sm" variant="secondary" onClick={onDelete}>
           <Trash2 className="mr-1.5 h-3.5 w-3.5" />
           {t("delete")}
@@ -516,6 +555,8 @@ function BatchHistoryCard({
   locale,
   onPreviewLang,
   onCopy,
+  onDownload,
+  onDownloadAll,
   onDeleteBatch,
   t,
   tTranslator,
@@ -525,6 +566,8 @@ function BatchHistoryCard({
   locale: string;
   onPreviewLang: (entry: HistoryEntry) => void;
   onCopy: (entry: HistoryEntry) => void;
+  onDownload: (entry: HistoryEntry) => void;
+  onDownloadAll: () => void;
   onDeleteBatch: () => void;
   t: ReturnType<typeof useTranslations<"history">>;
   tTranslator: ReturnType<typeof useTranslations<"translator">>;
@@ -603,6 +646,14 @@ function BatchHistoryCard({
         <Button size="sm" variant="secondary" onClick={() => onCopy(active)}>
           <Copy className="mr-1.5 h-3.5 w-3.5" />
           {t("copyTranslation")}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => onDownload(active)}>
+          <Download className="mr-1.5 h-3.5 w-3.5" />
+          {t("download")}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={onDownloadAll}>
+          <Download className="mr-1.5 h-3.5 w-3.5" />
+          {t("downloadAll")}
         </Button>
         <Button size="sm" variant="secondary" onClick={onDeleteBatch}>
           <Trash2 className="mr-1.5 h-3.5 w-3.5" />

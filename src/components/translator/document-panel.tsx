@@ -119,7 +119,7 @@ export function DocumentPanel({
           kind: "document" as const,
           batchId,
           fileName: data.parsed.fileName,
-          sourceText: `[${data.parsed.fileName}] ${data.parsed.text}`,
+          sourceText: data.parsed.text,
           translatedText: r.text,
           sourceLanguage: r.detectedSourceLanguage,
           targetLanguage: r.targetLanguage,

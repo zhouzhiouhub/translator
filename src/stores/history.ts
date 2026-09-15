@@ -32,6 +32,14 @@ function clip(text: string, max = MAX_STORED_TEXT) {
   return `${text.slice(0, max)}…`;
 }
 
+function stripFileNamePrefix(sourceText: string, fileName?: string): string {
+  if (!fileName) return sourceText;
+  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return sourceText
+    .replace(new RegExp(`^\\[${escaped}\\]\\s*`), "")
+    .replace(new RegExp(`^${escaped}\\s*`), "");
+}
+
 function normalizeEntry(
   entry: NewHistoryEntry,
   createdAt: number,
@@ -41,7 +49,7 @@ function normalizeEntry(
     id: createId(),
     createdAt,
     kind: entry.kind ?? "text",
-    sourceText: clip(entry.sourceText),
+    sourceText: clip(stripFileNamePrefix(entry.sourceText, entry.fileName)),
     translatedText: clip(entry.translatedText),
   };
 }
@@ -50,11 +58,12 @@ function migrateEntries(raw: unknown): HistoryEntry[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((item) => {
     const e = item as Partial<HistoryEntry>;
+    const fileName = e.fileName;
     return {
       id: e.id ?? createId(),
       createdAt: typeof e.createdAt === "number" ? e.createdAt : Date.now(),
       kind: e.kind === "document" ? "document" : "text",
-      sourceText: e.sourceText ?? "",
+      sourceText: stripFileNamePrefix(e.sourceText ?? "", fileName),
       translatedText: e.translatedText ?? "",
       sourceLanguage: e.sourceLanguage,
       targetLanguage: e.targetLanguage ?? "en",
@@ -62,7 +71,7 @@ function migrateEntries(raw: unknown): HistoryEntry[] {
       model: e.model,
       durationMs: e.durationMs ?? 0,
       batchId: e.batchId,
-      fileName: e.fileName,
+      fileName,
     };
   });
 }

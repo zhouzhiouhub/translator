@@ -6,14 +6,37 @@ import { usePathname, useRouter } from "next/navigation";
 import { Check, ChevronDown, Languages } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouteLocale } from "@/i18n/use-route-locale";
-import { isUiLocale, type UiLocale } from "@/i18n/ui-locales";
-import { localizedLanguageName, stableLanguageName } from "@/i18n/languages";
+import type { UiLocale } from "@/i18n/ui-locales";
 import { setExplicitUiLocaleCookie } from "@/i18n/resolve-ui-locale";
 import { useUiLocaleStore } from "@/stores/ui-locale";
 
 function swapLocalePath(pathname: string, current: string, next: string) {
   const rest = pathname.replace(new RegExp(`^/${current}`), "") || "";
   return `/${next}${rest}`;
+}
+
+function stableUiLocaleLabel(code: string, uiLocale: string) {
+  if (code === "zh-CN") {
+    return uiLocale.toLowerCase().startsWith("zh")
+      ? "简体中文"
+      : "Simplified Chinese";
+  }
+  if (code === "en-US") return "English";
+  return code;
+}
+
+function localizedUiLocaleLabel(code: string, uiLocale: string) {
+  if (code === "zh-CN" || code === "en-US") {
+    return stableUiLocaleLabel(code, uiLocale);
+  }
+  try {
+    const names = new Intl.DisplayNames([uiLocale, "en"], {
+      type: "language",
+    });
+    return names.of(code) ?? code;
+  } catch {
+    return code;
+  }
 }
 
 export function UiLocaleSwitcher() {
@@ -32,10 +55,14 @@ export function UiLocaleSwitcher() {
   const [mounted, setMounted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const active: UiLocale = isUiLocale(routeLocale) ? routeLocale : preferred;
+  const active: UiLocale = readyLocales.includes(routeLocale)
+    ? routeLocale
+    : preferred;
 
   function labelFor(code: string) {
-    return (mounted ? localizedLanguageName : stableLanguageName)(code, locale);
+    return mounted
+      ? localizedUiLocaleLabel(code, locale)
+      : stableUiLocaleLabel(code, locale);
   }
 
   useEffect(() => {

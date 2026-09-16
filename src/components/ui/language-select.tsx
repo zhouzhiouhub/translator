@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/searchable-select";
 import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
 
-type LanguageSelectProps = {
+export type LanguageSelectProps = {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;

@@ -13,6 +13,14 @@ const productionPolicy = isDevelopment ? "" : "; upgrade-insecure-requests";
 const nextConfig: NextConfig = {
   // Allow LAN / WSL host so client JS + HMR work when opening via 172.x instead of localhost
   allowedDevOrigins: ["172.26.64.1", "127.0.0.1", "localhost"],
+  turbopack: {
+    resolveAlias: {
+      "next/dist/build/polyfills/polyfill-module":
+        "./src/polyfills/modern-browser-noop.ts",
+      "../build/polyfills/polyfill-module":
+        "./src/polyfills/modern-browser-noop.ts",
+    },
+  },
   async headers() {
     return [
       {

@@ -1,13 +1,39 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Plus, X } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { LanguageSelect } from "@/components/ui/language-select";
-import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
+import { useLocale, useTranslations } from "next-intl";
+import { useState } from "react";
+import type { LanguageSelectProps } from "@/components/ui/language-select";
 import { cn } from "@/lib/utils";
 
 const slotTriggerClass =
   "h-10 border-transparent bg-primary/10 px-3 text-foreground shadow-none hover:bg-primary/15 focus-visible:ring-primary/20";
+
+const LanguageSelect = dynamic<LanguageSelectProps>(
+  () =>
+    import("@/components/ui/language-select").then(
+      (mod) => mod.LanguageSelect,
+    ),
+  {
+    loading: () => (
+      <div className="relative w-[168px]">
+        <button
+          type="button"
+          disabled
+          className={cn(
+            "flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-border bg-white px-3 text-left text-sm opacity-70",
+            slotTriggerClass,
+          )}
+        >
+          <span className="flex min-w-0 flex-1 items-center gap-2">
+            <span className="truncate">...</span>
+          </span>
+        </button>
+      </div>
+    ),
+  },
+);
 
 export function MultiTargetLanguagePicker({
   values,
@@ -19,10 +45,9 @@ export function MultiTargetLanguagePicker({
   disabled?: boolean;
 }) {
   const t = useTranslations("document");
-  const langs = useLocalizedLanguageOptions();
-  const used = new Set(values);
-  const remaining = langs.filter((l) => !used.has(l.value));
-  const canAdd = remaining.length > 0;
+  const locale = useLocale();
+  const [adding, setAdding] = useState(false);
+  const canAdd = !adding;
 
   function setAt(index: number, code: string) {
     const next = [...values];
@@ -35,11 +60,19 @@ export function MultiTargetLanguagePicker({
     onChange(values.filter((_, i) => i !== index));
   }
 
-  function addSlot() {
+  async function addSlot() {
     if (!canAdd) return;
-    const candidate = remaining[0]?.value;
-    if (!candidate) return;
-    onChange([...values, candidate]);
+    setAdding(true);
+    try {
+      const { languagesForSelect } = await import("@/i18n/languages");
+      const used = new Set(values);
+      const candidate = languagesForSelect(locale, false).find(
+        (lang) => !used.has(lang.code),
+      )?.code;
+      if (candidate) onChange([...values, candidate]);
+    } finally {
+      setAdding(false);
+    }
   }
 
   return (
@@ -89,9 +122,9 @@ export function MultiTargetLanguagePicker({
         <button
           type="button"
           disabled={disabled || !canAdd}
-          onClick={addSlot}
+          onClick={() => void addSlot()}
           aria-label={t("addLanguage")}
-          title={canAdd ? t("addLanguage") : t("languageAllSelected")}
+          title={t("addLanguage")}
           className={cn(
             "flex h-10 w-10 items-center justify-center rounded-xl border border-transparent bg-primary/10 text-primary transition-colors",
             "hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-40",

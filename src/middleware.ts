@@ -33,7 +33,7 @@ export default function middleware(request: NextRequest) {
   if (!pathLocale) {
     const available = availableUiLocalesFromCookie(
       request.cookies.get(READY_UI_LOCALES_COOKIE)?.value,
-    );
+    ).filter(isAppLocale);
     const explicitRaw = request.cookies.get(EXPLICIT_UI_LOCALE_COOKIE)?.value;
     const explicit =
       explicitRaw && isAppLocale(explicitRaw) ? explicitRaw : null;

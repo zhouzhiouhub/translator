@@ -19,7 +19,6 @@ import {
   isUiLocale,
   type UiLocale,
 } from "@/i18n/ui-locales";
-import { getLanguage } from "@/i18n/languages";
 import { syncReadyUiLocalesCookie } from "@/i18n/resolve-ui-locale";
 
 const MIN_COVERAGE_RATIO = 0.35;
@@ -105,7 +104,7 @@ export const useUiLocaleStore = create<UiLocaleState>()(
         const hash = getSourceVersionHash();
         for (const code of listCachedLocaleCodes(hash)) {
           if (isFixedUiLocale(code)) continue;
-          if (!getLanguage(code) && !isUiLocale(code)) continue;
+          if (!isUiLocale(code)) continue;
           if (await isPackReady(code)) ready.push(code);
         }
         set({ readyLocales: ready });

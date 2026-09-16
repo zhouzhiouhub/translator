@@ -3,7 +3,7 @@ import {
   fixedLocales,
   isAppLocale,
   type AppLocale,
-} from "./config";
+} from "./app-locale";
 
 /** Comma-separated generated UI locales (excludes built-ins). Readable by middleware. */
 export const READY_UI_LOCALES_COOKIE = "kinolin.readyUiLocales";

@@ -9,10 +9,6 @@ const developmentConnectPolicy = isDevelopment
   ? " http://localhost:* http://127.0.0.1:*"
   : "";
 const productionPolicy = isDevelopment ? "" : "; upgrade-insecure-requests";
-const cloudflareInsightsScriptSource =
-  process.env.NEXT_PUBLIC_ENABLE_CLOUDFLARE_INSIGHTS === "true"
-    ? " https://static.cloudflareinsights.com"
-    : "";
 
 const nextConfig: NextConfig = {
   // Allow LAN / WSL host so client JS + HMR work when opening via 172.x instead of localhost
@@ -25,7 +21,7 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy",
             value:
-              `default-src 'self'; script-src 'self' 'unsafe-inline'${cloudflareInsightsScriptSource}${developmentScriptPolicy}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: ${developmentConnectPolicy}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'${productionPolicy}`,
+              `default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com${developmentScriptPolicy}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: ${developmentConnectPolicy}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'${productionPolicy}`,
           },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

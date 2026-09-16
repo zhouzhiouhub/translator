@@ -12,6 +12,9 @@ const handleI18nRouting = createMiddleware({
   locales: [...locales],
   defaultLocale,
   localePrefix: "always",
+  // Keep the full generated locale catalog out of the HTTP Link header.
+  // Page metadata still publishes alternates for the built-in locales.
+  alternateLinks: false,
   // Accept-Language is handled below so we can include user-generated packs
   // (via cookie) and fall back to en-US when nothing matches.
   localeDetection: false,

@@ -3,7 +3,7 @@ import enUS from "../../../messages/en-US.json";
 import { createAIProvider } from "@/ai/client/factory";
 import type { AIConfig } from "@/types/translation";
 import type { LocaleParams, LocaleResult } from "@/ai/types";
-import { checkAiConfig } from "@/agents/translator";
+import { checkAiConfig } from "@/agents/translator/config";
 import { throwIfAborted } from "@/lib/abort";
 import {
   computeSourceVersionHash,

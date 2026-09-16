@@ -1,13 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import {
-  createAIProvider,
-  DEFAULT_MODELS,
-  PROVIDER_OPTIONS,
-} from "@/ai/client/factory";
+import { DEFAULT_MODELS, PROVIDER_OPTIONS } from "@/ai/client/options";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +39,7 @@ export function AiConfigForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"ok" | "error">("ok");
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [keyPreview, setKeyPreview] = useState("");
 
   // Uncontrolled password field — browser autofill often does not update React state
@@ -81,8 +77,10 @@ export function AiConfigForm() {
     return fromInput || DEFAULT_MODELS[provider];
   }
 
-  const testMutation = useMutation({
-    mutationFn: async () => {
+  async function onTestConnection() {
+    if (testing) return;
+    setTesting(true);
+    try {
       const nextModel = readModel();
       const nextKey = readApiKey();
       if (!nextModel || !nextKey) {
@@ -98,6 +96,7 @@ export function AiConfigForm() {
         baseUrl: provider === "compatible" ? baseUrl.trim() : undefined,
       };
       if (!validateAIConfig(config)) throw new Error("AI_CONFIG_INVALID");
+      const { createAIProvider } = await import("@/ai/client/factory");
       const p = createAIProvider(config);
       const ok = await p.testConnection();
       if (!ok) throw new Error(t("statusFailed"));
@@ -106,12 +105,14 @@ export function AiConfigForm() {
         lastTestAt: Date.now(),
         lastTestOk: true,
       });
-      return true;
-    },
-    onSuccess: () => flash("ok", t("testSuccess")),
-    onError: (err: Error) =>
-      flash("error", mapProviderError(err.message, t) || t("statusFailed")),
-  });
+      flash("ok", t("testSuccess"));
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      flash("error", mapProviderError(error.message, t) || t("statusFailed"));
+    } finally {
+      setTesting(false);
+    }
+  }
 
   async function onSave() {
     setSaving(true);
@@ -296,10 +297,10 @@ export function AiConfigForm() {
             <Button
               type="button"
               variant="secondary"
-              disabled={testMutation.isPending}
-              onClick={() => testMutation.mutate()}
+              disabled={testing}
+              onClick={() => void onTestConnection()}
             >
-              {testMutation.isPending ? tCommon("loading") : t("testConnection")}
+              {testing ? tCommon("loading") : t("testConnection")}
             </Button>
             <Button
               type="button"

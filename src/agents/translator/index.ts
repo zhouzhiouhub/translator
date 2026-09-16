@@ -1,18 +1,14 @@
 import type { AIConfig, TranslateInput, TranslateResult } from "@/types/translation";
+import { checkAiConfig, type BatchItemStatus } from "@/agents/translator/config";
 import { isAbortError, throwIfAborted } from "@/lib/abort";
 import { createConcurrencyLimiter } from "@/lib/concurrency";
 import { AITranslator } from "@/translation/ai/AITranslator";
 
+export { checkAiConfig } from "@/agents/translator/config";
+export type { AiConfigCheck, BatchItemStatus } from "@/agents/translator/config";
+
 export interface TranslateOrchestrationInput extends TranslateInput {
   aiConfig?: AIConfig | null;
-}
-
-export interface AiConfigCheck {
-  ok: boolean;
-  hasProvider: boolean;
-  hasModel: boolean;
-  hasKey: boolean;
-  connectionOk: boolean | null;
 }
 
 export interface BatchTranslateProgress {
@@ -20,8 +16,6 @@ export interface BatchTranslateProgress {
   total: number;
   targetLanguage: string;
 }
-
-export type BatchItemStatus = "done" | "pending";
 
 export interface BatchTranslateResultItem extends TranslateResult {
   targetLanguage: string;
@@ -46,16 +40,6 @@ function pendingBatchItem(
     status: "pending",
     style,
   };
-}
-
-export function checkAiConfig(config?: AIConfig | null): AiConfigCheck {
-  const hasProvider = Boolean(config?.provider);
-  const hasModel = Boolean(config?.model?.trim());
-  const hasKey = Boolean(config?.apiKey?.trim());
-  const connectionOk =
-    typeof config?.lastTestOk === "boolean" ? config.lastTestOk : null;
-  const ok = hasProvider && hasModel && hasKey;
-  return { ok, hasProvider, hasModel, hasKey, connectionOk };
 }
 
 /** Translation Agent — BYOK AI only. */

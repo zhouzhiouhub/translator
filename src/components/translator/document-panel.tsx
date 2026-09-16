@@ -1,15 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Eye, FileText, Upload } from "lucide-react";
-import { checkAiConfig } from "@/agents/translator";
-import {
-  runBatchDocumentTranslation,
-  type BatchDocumentTranslateResult,
-  type DocumentTranslateResult,
+import { checkAiConfig } from "@/agents/translator/config";
+import type {
+  BatchDocumentTranslateResult,
+  DocumentTranslateResult,
 } from "@/agents/document";
 import { isAbortError } from "@/lib/abort";
 import { mapProviderError } from "@/lib/i18n/map-provider-error";
@@ -25,7 +23,6 @@ import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { MultiTargetLanguagePicker } from "@/components/translator/multi-target-language-picker";
 import { useAppStore } from "@/stores/app";
-import { createBatchId, useHistoryStore } from "@/stores/history";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
 import type { TranslationStyle } from "@/types/translation";
@@ -69,6 +66,7 @@ export function DocumentPanel({
   const [dragOver, setDragOver] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [progress, setProgress] = useState<DocumentTranslateProgress | null>(
     null,
   );
@@ -85,7 +83,6 @@ export function DocumentPanel({
     customPrompt,
     aiConfig,
   } = useAppStore();
-  const addBatchEntries = useHistoryStore((s) => s.addBatchEntries);
 
   useEffect(() => {
     return () => {
@@ -118,83 +115,71 @@ export function DocumentPanel({
     : 0;
   const activeDone = activeResult?.status === "done";
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (!file) throw new Error("DOCUMENT_NO_FILE");
-      if (targetLanguages.length === 0) throw new Error("DOCUMENT_NO_TARGETS");
-      abortRef.current?.abort();
-      const ac = new AbortController();
-      abortRef.current = ac;
-      return runBatchDocumentTranslation({
-        file,
-        targetLanguages,
-        style,
-        customPrompt: style === "custom" ? customPrompt.trim() || undefined : undefined,
-        aiConfig,
-        signal: ac.signal,
-        onProgress: setProgress,
-      });
-    },
-    onSettled: () => {
-      abortRef.current = null;
-    },
-    onSuccess: (data) => {
-      setBatchResult(data);
-      const firstDone =
-        data.results.find((r) => r.status === "done") ?? data.results[0];
-      setActiveLang(firstDone?.targetLanguage ?? null);
-      setProgress(null);
+  async function saveCompletedToHistory(
+    data: BatchDocumentTranslateResult,
+    completed: DocumentTranslateResult[],
+  ) {
+    if (completed.length === 0) return;
+    const { createBatchId, useHistoryStore } = await import("@/stores/history");
+    const batchId = createBatchId();
+    useHistoryStore.getState().addBatchEntries(
+      completed.map((r) => ({
+        kind: "document" as const,
+        batchId: completed.length > 1 ? batchId : undefined,
+        fileName: data.parsed.fileName,
+        sourceText: data.parsed.text,
+        translatedText: r.text,
+        sourceLanguage: r.detectedSourceLanguage,
+        targetLanguage: r.targetLanguage,
+        style: r.style ?? style,
+        model: r.model,
+        durationMs: r.durationMs,
+      })),
+    );
+  }
 
-      const completed = data.results.filter((r) => r.status === "done");
-      const pending = data.results.length - completed.length;
+  async function handleTranslateSuccess(data: BatchDocumentTranslateResult) {
+    setBatchResult(data);
+    const firstDone =
+      data.results.find((r) => r.status === "done") ?? data.results[0];
+    setActiveLang(firstDone?.targetLanguage ?? null);
+    setProgress(null);
 
-      if (completed.length > 0) {
-        const batchId = createBatchId();
-        addBatchEntries(
-          completed.map((r) => ({
-            kind: "document" as const,
-            batchId: completed.length > 1 ? batchId : undefined,
-            fileName: data.parsed.fileName,
-            sourceText: data.parsed.text,
-            translatedText: r.text,
-            sourceLanguage: r.detectedSourceLanguage,
-            targetLanguage: r.targetLanguage,
-            style: r.style ?? style,
-            model: r.model,
-            durationMs: r.durationMs,
-          })),
-        );
-      }
+    const completed = data.results.filter((r) => r.status === "done");
+    const pending = data.results.length - completed.length;
 
-      if (data.cancelled) {
-        onToast(
-          t("cancelledPartial", {
-            done: completed.length,
-            pending,
-          }),
-        );
-        return;
-      }
+    await saveCompletedToHistory(data, completed);
 
+    if (data.cancelled) {
       onToast(
-        t("batchDone", {
-          count: completed.length,
+        t("cancelledPartial", {
+          done: completed.length,
+          pending,
         }),
       );
-    },
-    onError: (err: Error) => {
-      setProgress(null);
-      if (isAbortError(err)) {
-        onToast(tCommon("cancelled"));
-        return;
-      }
-      if (err.message === "AI_NOT_CONFIGURED") {
-        setGateOpen(true);
-        return;
-      }
-      onToast(mapDocumentError(err.message, t, tAi));
-    },
-  });
+      return;
+    }
+
+    onToast(
+      t("batchDone", {
+        count: completed.length,
+      }),
+    );
+  }
+
+  function handleTranslateError(err: unknown) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    setProgress(null);
+    if (isAbortError(error)) {
+      onToast(tCommon("cancelled"));
+      return;
+    }
+    if (error.message === "AI_NOT_CONFIGURED") {
+      setGateOpen(true);
+      return;
+    }
+    onToast(mapDocumentError(error.message, t, tAi));
+  }
 
   const onPickFile = useCallback(
     (next: File | null) => {
@@ -214,7 +199,8 @@ export function DocumentPanel({
     [onToast, t],
   );
 
-  function onTranslate() {
+  async function onTranslate() {
+    if (isTranslating) return;
     if (!file) {
       onToast(t("errorNoFile"));
       return;
@@ -227,7 +213,33 @@ export function DocumentPanel({
       setGateOpen(true);
       return;
     }
-    mutation.mutate();
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    setIsTranslating(true);
+    setProgress(null);
+
+    try {
+      const { runBatchDocumentTranslation } = await import("@/agents/document");
+      const data = await runBatchDocumentTranslation({
+        file,
+        targetLanguages,
+        style,
+        customPrompt:
+          style === "custom" ? customPrompt.trim() || undefined : undefined,
+        aiConfig,
+        signal: ac.signal,
+        onProgress: setProgress,
+      });
+      await handleTranslateSuccess(data);
+    } catch (err) {
+      handleTranslateError(err);
+    } finally {
+      if (abortRef.current === ac) {
+        abortRef.current = null;
+      }
+      setIsTranslating(false);
+    }
   }
 
   function onCancel() {
@@ -347,7 +359,7 @@ export function DocumentPanel({
         <MultiTargetLanguagePicker
           values={targetLanguages}
           onChange={setTargetLanguages}
-          disabled={mutation.isPending}
+          disabled={isTranslating}
         />
 
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -360,7 +372,7 @@ export function DocumentPanel({
                 id="document-style-select"
                 value={style}
                 onChange={(e) => setStyle(e.target.value as TranslationStyle)}
-                disabled={mutation.isPending}
+                disabled={isTranslating}
               >
                 {TRANSLATION_STYLES.map((s) => (
                   <option key={s} value={s}>
@@ -393,13 +405,16 @@ export function DocumentPanel({
                 {progressLabel}
               </span>
             ) : null}
-            {mutation.isPending ? (
+            {isTranslating ? (
               <Button variant="secondary" onClick={onCancel}>
                 {tCommon("cancel")}
               </Button>
             ) : null}
-            <Button onClick={onTranslate} disabled={mutation.isPending || !file}>
-              {mutation.isPending ? tCommon("loading") : t("translate")}
+            <Button
+              onClick={() => void onTranslate()}
+              disabled={isTranslating || !file}
+            >
+              {isTranslating ? tCommon("loading") : t("translate")}
             </Button>
           </div>
         </div>

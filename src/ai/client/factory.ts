@@ -1,10 +1,12 @@
-import type { AIConfig, AiProviderId } from "@/types/translation";
+import type { AIConfig } from "@/types/translation";
 import type { AIProvider } from "@/ai/types";
 import { OpenAIProvider } from "@/ai/providers/openai";
 import { ClaudeProvider } from "@/ai/providers/claude";
 import { GeminiProvider } from "@/ai/providers/gemini";
 import { DeepSeekProvider } from "@/ai/providers/deepseek";
 import { OpenAICompatibleProvider } from "@/ai/providers/compatible";
+
+export { DEFAULT_MODELS, MODEL_SUGGESTIONS, PROVIDER_OPTIONS } from "./options";
 
 export function createAIProvider(config: AIConfig): AIProvider {
   switch (config.provider) {
@@ -24,31 +26,3 @@ export function createAIProvider(config: AIConfig): AIProvider {
     }
   }
 }
-
-export const PROVIDER_OPTIONS: { id: AiProviderId; label: string }[] = [
-  { id: "openai", label: "OpenAI" },
-  { id: "claude", label: "Claude" },
-  { id: "gemini", label: "Gemini" },
-  { id: "deepseek", label: "DeepSeek" },
-  { id: "compatible", label: "OpenAI Compatible" },
-];
-
-export const DEFAULT_MODELS: Record<AiProviderId, string> = {
-  openai: "gpt-4o",
-  claude: "claude-sonnet-4-20250514",
-  gemini: "gemini-3.5-flash-lite",
-  deepseek: "deepseek-chat",
-  compatible: "",
-};
-
-/** Suggested models shown in AI config UI */
-export const MODEL_SUGGESTIONS: Partial<Record<AiProviderId, string[]>> = {
-  gemini: [
-    "gemini-3.5-flash-lite",
-    "gemini-3.1-flash-lite",
-    "gemini-flash-lite-latest",
-    "gemini-flash-latest",
-  ],
-  deepseek: ["deepseek-chat", "deepseek-reasoner"],
-  openai: ["gpt-4o", "gpt-4o-mini"],
-};

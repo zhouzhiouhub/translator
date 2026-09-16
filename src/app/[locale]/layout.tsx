@@ -4,7 +4,6 @@ import { getMessages, getTranslations, setRequestLocale } from "next-intl/server
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { UiLocaleProvider } from "@/components/i18n/ui-locale-provider";
-import { Providers } from "@/components/providers";
 import { isAppLocale, fixedLocales } from "@/i18n/config";
 import { buildLocaleAlternates, buildLocaleUrl } from "@/lib/seo/urls";
 import "../globals.css";
@@ -68,11 +67,9 @@ export default async function LocaleLayout({
     <html lang={locale}>
       <body className="antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Providers>
-            <UiLocaleProvider>
-              <AppShell>{children}</AppShell>
-            </UiLocaleProvider>
-          </Providers>
+          <UiLocaleProvider>
+            <AppShell>{children}</AppShell>
+          </UiLocaleProvider>
         </NextIntlClientProvider>
       </body>
     </html>

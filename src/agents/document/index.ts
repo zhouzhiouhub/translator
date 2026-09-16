@@ -1,8 +1,8 @@
+import { runTranslation } from "@/agents/translator";
 import {
   checkAiConfig,
-  runTranslation,
   type BatchItemStatus,
-} from "@/agents/translator";
+} from "@/agents/translator/config";
 import { isAbortError, throwIfAborted } from "@/lib/abort";
 import { createConcurrencyLimiter, type ConcurrencyLimiter } from "@/lib/concurrency";
 import { chunkDocumentText } from "@/lib/document/chunk";

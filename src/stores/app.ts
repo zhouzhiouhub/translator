@@ -6,7 +6,7 @@ import type {
   TranslateResult,
 } from "@/types/translation";
 import { MAX_CUSTOM_PROMPT_CHARS } from "@/types/translation";
-import { checkAiConfig } from "@/agents/translator";
+import { checkAiConfig } from "@/agents/translator/config";
 import {
   clearAIConfig,
   loadAIConfig,

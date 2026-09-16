@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Eye } from "lucide-react";
-import {
-  checkAiConfig,
-  runBatchTranslation,
-  type BatchTranslateProgress,
-  type BatchTranslateResult,
-  type BatchTranslateResultItem,
+import { checkAiConfig } from "@/agents/translator/config";
+import type {
+  BatchTranslateProgress,
+  BatchTranslateResult,
+  BatchTranslateResultItem,
 } from "@/agents/translator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,17 +17,10 @@ import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { MultiTargetLanguagePicker } from "@/components/translator/multi-target-language-picker";
-import {
-  downloadTextFile,
-  historyDownloadFileName,
-} from "@/lib/document/export";
 import { isAbortError } from "@/lib/abort";
-import { mapProviderError } from "@/lib/i18n/map-provider-error";
 import { useAppStore } from "@/stores/app";
-import { createBatchId, useHistoryStore } from "@/stores/history";
 import { useRouteLocale } from "@/i18n/use-route-locale";
 import { useLocalizedLanguageOptions } from "@/i18n/use-localized-languages";
-import { PageContainer } from "@/components/layout/page-container";
 import type { TranslationStyle } from "@/types/translation";
 import { TRANSLATION_STYLES } from "@/types/translation";
 
@@ -80,6 +71,7 @@ export function TranslatorPanel() {
   const [gateOpen, setGateOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [tab, setTab] = useState<TranslatorTab>("text");
+  const [isTranslating, setIsTranslating] = useState(false);
   const [progress, setProgress] = useState<BatchTranslateProgress | null>(null);
   const [batchResult, setBatchResult] = useState<BatchTranslateResult | null>(
     null,
@@ -102,7 +94,6 @@ export function TranslatorPanel() {
     maxChars,
     hydrateAiConfig,
   } = useAppStore();
-  const addBatchEntries = useHistoryStore((s) => s.addBatchEntries);
 
   useEffect(() => {
     void hydrateAiConfig();
@@ -137,92 +128,82 @@ export function TranslatorPanel() {
     : 0;
   const activeDone = activeResult?.status === "done";
 
-  const mutation = useMutation({
-    mutationFn: () => {
-      abortRef.current?.abort();
-      const ac = new AbortController();
-      abortRef.current = ac;
-      return runBatchTranslation({
-        text: inputText,
-        targetLanguages,
-        style,
-        customPrompt: style === "custom" ? customPrompt.trim() || undefined : undefined,
-        aiConfig,
-        signal: ac.signal,
-        onProgress: setProgress,
-      });
-    },
-    onSettled: () => {
-      abortRef.current = null;
-    },
-    onSuccess: (data) => {
-      setProgress(null);
-      setBatchResult(data);
-      const firstDone =
-        data.results.find((r) => r.status === "done") ?? data.results[0];
-      setActiveLang(firstDone?.targetLanguage ?? null);
-      if (firstDone?.status === "done") {
-        setResult(firstDone);
-        setTargetLanguage(firstDone.targetLanguage);
-      } else {
-        setResult(null);
-      }
+  async function saveCompletedToHistory(
+    completed: BatchTranslateResultItem[],
+  ) {
+    if (completed.length === 0) return;
+    const { createBatchId, useHistoryStore } = await import("@/stores/history");
+    const batchId = createBatchId();
+    useHistoryStore.getState().addBatchEntries(
+      completed.map((r) => ({
+        kind: "text" as const,
+        batchId: completed.length > 1 ? batchId : undefined,
+        sourceText: inputText,
+        translatedText: r.text,
+        sourceLanguage: r.detectedSourceLanguage,
+        targetLanguage: r.targetLanguage,
+        style: r.style ?? style,
+        model: r.model,
+        durationMs: r.durationMs,
+      })),
+    );
+  }
 
-      const completed = data.results.filter((r) => r.status === "done");
-      const pending = data.results.length - completed.length;
+  async function handleTranslationSuccess(data: BatchTranslateResult) {
+    setProgress(null);
+    setBatchResult(data);
+    const firstDone =
+      data.results.find((r) => r.status === "done") ?? data.results[0];
+    setActiveLang(firstDone?.targetLanguage ?? null);
+    if (firstDone?.status === "done") {
+      setResult(firstDone);
+      setTargetLanguage(firstDone.targetLanguage);
+    } else {
+      setResult(null);
+    }
 
-      if (completed.length > 0) {
-        const batchId = createBatchId();
-        addBatchEntries(
-          completed.map((r) => ({
-            kind: "text" as const,
-            batchId: completed.length > 1 ? batchId : undefined,
-            sourceText: inputText,
-            translatedText: r.text,
-            sourceLanguage: r.detectedSourceLanguage,
-            targetLanguage: r.targetLanguage,
-            style: r.style ?? style,
-            model: r.model,
-            durationMs: r.durationMs,
-          })),
-        );
-      }
+    const completed = data.results.filter((r) => r.status === "done");
+    const pending = data.results.length - completed.length;
 
-      if (data.cancelled) {
-        showToast(
-          t("cancelledPartial", {
-            done: completed.length,
-            pending,
-          }),
-        );
-        return;
-      }
+    await saveCompletedToHistory(completed);
 
-      if (completed.length > 1) {
-        showToast(t("batchDone", { count: completed.length }));
-      }
-    },
-    onError: (err: Error) => {
-      setProgress(null);
-      if (isAbortError(err)) {
-        showToast(tCommon("cancelled"));
-        return;
-      }
-      if (err.message === "AI_NOT_CONFIGURED") {
-        setGateOpen(true);
-        return;
-      }
-      if (err.message === "NO_TARGETS") {
-        showToast(tDoc("errorNoTargets"));
-        return;
-      }
-      if (err.message === "TRANSLATION_UNCHANGED") {
-        showToast(t("errorUnchanged"));
-        return;
-      }
-      showToast(mapProviderError(err.message, tAi));
-    },
-  });
+    if (data.cancelled) {
+      showToast(
+        t("cancelledPartial", {
+          done: completed.length,
+          pending,
+        }),
+      );
+      return;
+    }
+
+    if (completed.length > 1) {
+      showToast(t("batchDone", { count: completed.length }));
+    }
+  }
+
+  async function handleTranslationError(err: unknown) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    setProgress(null);
+    if (isAbortError(error)) {
+      showToast(tCommon("cancelled"));
+      return;
+    }
+    if (error.message === "AI_NOT_CONFIGURED") {
+      setGateOpen(true);
+      return;
+    }
+    if (error.message === "NO_TARGETS") {
+      showToast(tDoc("errorNoTargets"));
+      return;
+    }
+    if (error.message === "TRANSLATION_UNCHANGED") {
+      showToast(t("errorUnchanged"));
+      return;
+    }
+    const { mapProviderError } = await import("@/lib/i18n/map-provider-error");
+    showToast(mapProviderError(error.message, tAi));
+  }
 
   function showToast(message: string) {
     setToast(message);
@@ -233,7 +214,39 @@ export function TranslatorPanel() {
     abortRef.current?.abort();
   }
 
-  function onTranslate() {
+  async function downloadResult(result: BatchTranslateResultItem) {
+    if (result.status !== "done") return;
+    const { downloadTextFile, historyDownloadFileName } = await import(
+      "@/lib/document/export"
+    );
+    downloadTextFile(
+      historyDownloadFileName({
+        targetLanguage: result.targetLanguage,
+        kind: "text",
+      }),
+      result.text,
+    );
+    showToast(t("downloaded"));
+  }
+
+  async function downloadAllResults() {
+    const { downloadTextFile, historyDownloadFileName } = await import(
+      "@/lib/document/export"
+    );
+    for (const r of doneResults) {
+      downloadTextFile(
+        historyDownloadFileName({
+          targetLanguage: r.targetLanguage,
+          kind: "text",
+        }),
+        r.text,
+      );
+    }
+    showToast(t("downloaded"));
+  }
+
+  async function onTranslate() {
+    if (isTranslating) return;
     if (!inputText.trim()) {
       showToast(t("emptyInput"));
       return;
@@ -247,7 +260,33 @@ export function TranslatorPanel() {
       setGateOpen(true);
       return;
     }
-    mutation.mutate();
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    setIsTranslating(true);
+    setProgress(null);
+
+    try {
+      const { runBatchTranslation } = await import("@/agents/translator");
+      const data = await runBatchTranslation({
+        text: inputText,
+        targetLanguages,
+        style,
+        customPrompt:
+          style === "custom" ? customPrompt.trim() || undefined : undefined,
+        aiConfig,
+        signal: ac.signal,
+        onProgress: setProgress,
+      });
+      await handleTranslationSuccess(data);
+    } catch (err) {
+      await handleTranslationError(err);
+    } finally {
+      if (abortRef.current === ac) {
+        abortRef.current = null;
+      }
+      setIsTranslating(false);
+    }
   }
 
   const check = checkAiConfig(aiConfig);
@@ -262,13 +301,7 @@ export function TranslatorPanel() {
       : null;
 
   return (
-    <PageContainer>
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-brand-ink">
-          {t("greeting")}
-        </h1>
-      </header>
-
+    <>
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex gap-2">
@@ -319,7 +352,7 @@ export function TranslatorPanel() {
             <MultiTargetLanguagePicker
               values={targetLanguages}
               onChange={setTargetLanguages}
-              disabled={mutation.isPending}
+              disabled={isTranslating}
             />
 
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -334,7 +367,7 @@ export function TranslatorPanel() {
                     onChange={(e) =>
                       setStyle(e.target.value as TranslationStyle)
                     }
-                    disabled={mutation.isPending}
+                    disabled={isTranslating}
                   >
                     {TRANSLATION_STYLES.map((s) => (
                       <option key={s} value={s}>
@@ -367,13 +400,13 @@ export function TranslatorPanel() {
                     {progressLabel}
                   </span>
                 ) : null}
-                {mutation.isPending ? (
+                {isTranslating ? (
                   <Button variant="secondary" onClick={onCancel}>
                     {tCommon("cancel")}
                   </Button>
                 ) : null}
-                <Button onClick={onTranslate} disabled={mutation.isPending}>
-                  {mutation.isPending ? tCommon("loading") : t("translate")}
+                <Button onClick={() => void onTranslate()} disabled={isTranslating}>
+                  {isTranslating ? tCommon("loading") : t("translate")}
                 </Button>
               </div>
             </div>
@@ -438,16 +471,7 @@ export function TranslatorPanel() {
                 size="sm"
                 variant="secondary"
                 disabled={!activeDone}
-                onClick={() => {
-                  downloadTextFile(
-                    historyDownloadFileName({
-                      targetLanguage: activeResult.targetLanguage,
-                      kind: "text",
-                    }),
-                    activeResult.text,
-                  );
-                  showToast(t("downloaded"));
-                }}
+                onClick={() => void downloadResult(activeResult)}
               >
                 {t("download")}
               </Button>
@@ -455,18 +479,7 @@ export function TranslatorPanel() {
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => {
-                    for (const r of doneResults) {
-                      downloadTextFile(
-                        historyDownloadFileName({
-                          targetLanguage: r.targetLanguage,
-                          kind: "text",
-                        }),
-                        r.text,
-                      );
-                    }
-                    showToast(t("downloaded"));
-                  }}
+                  onClick={() => void downloadAllResults()}
                 >
                   {t("downloadAll")}
                 </Button>
@@ -474,8 +487,8 @@ export function TranslatorPanel() {
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={onTranslate}
-                disabled={mutation.isPending}
+                onClick={() => void onTranslate()}
+                disabled={isTranslating}
               >
                 {t("retranslate")}
               </Button>
@@ -649,7 +662,7 @@ export function TranslatorPanel() {
           {toast}
         </div>
       ) : null}
-    </PageContainer>
+    </>
   );
 }
 
